@@ -47,7 +47,7 @@ Fakultas Matematika dan Ilmu Pengetahuan Alam, **Universitas Negeri Surabaya**
 Proyek riset mandiri ini mengimplementasikan perkalian matriks tingkat tinggi (**GEMM - General Matrix Multiplication**) menggunakan arsitektur komputasi heterogen. Kami membandingkan tiga pendekatan utama untuk menganalisis efisiensi, throughput komputasi, dan batasan hardware (bottleneck):
 
 1. **Sequential CPU (Baseline):** Algoritma perkalian matriks standar row-major tiga tingkat loop tunggal yang berjalan pada satu core CPU untuk menetapkan dasar keakuratan matematika (Ground Truth).
-2. **Parallel CPU (OpenMP):** Paralelisasi multi-threaded dengan pembagian kerja dinamis (`collapse(2)` dan `schedule(static)`) pada core CPU fisik terdedikasi.
+2. **Parallel CPU (OpenMP):** Paralelisasi multi-threaded dengan pembagian kerja multi-dimensi (`collapse(2)`) dan pemetaan beban kerja statis (`schedule(static)`) yang diikat pada core CPU fisik terdedikasi untuk meminimalkan thread migration overhead.
 3. **GPU Accelerated (OpenCL):** Pemrosesan paralel masif menggunakan arsitektur GPU NVIDIA Laptop RTX 4050 dengan optimasi **Matrix Tiling** memanfaatkan local memory (`__local` scratchpad cache) untuk mengurangi global memory access latency.
 
 ---
@@ -79,6 +79,11 @@ Berikut adalah data hasil pengujian riil yang tercatat pada sistem kami:
 | **Sequential (CPU Baseline)** | 0.0086 s | 0.0654 s | 2.4354 s | 22.5848 s | *Reference* |
 | **OpenMP (6 Threads P-Core)** | 0.0030 s | 0.0132 s | 0.4045 s | 3.1620 s | ✅ **VALID** |
 | **OpenCL (GPU Tiled)** | 0.0948 s | 0.0870 s | 0.1024 s | 0.1547 s | ✅ **VALID** |
+
+> 💡 **Analisis Ringkas Hasil Eksperimen:**
+> * **Efek Latency PCIe (N=256):** Pada matriks kecil, GPU OpenCL justru lebih lambat dibanding CPU karena *overhead* waktu transfer data dari Host ke Device (H2D) lebih mahal ketimbang waktu komputasinya.
+> * **Titik Crossover (N=512):** Fase transisi di mana beban komputasi mulai seimbang dengan biaya transfer data memori.
+> * **GPU Dominance & Speedup (N=2048):** Pada data masif, arsitektur *parallel throughput* GPU RTX 4050 berhasil mengungguli CPU sekuensial hingga **~146 kali lebih cepat** berkat taktik *Matrix Tiling* dan optimalisasi memori lokal.
 
 ### 📈 Grafik Kinerja (Dark Clean Elegant Theme)
 
@@ -137,6 +142,12 @@ Untuk menghapus file biner hasil kompilasi dan reset file benchmark:
 make clean
 ```
 
+> 📌 **Catatan Hardware-Aware untuk Eksekusi Manual (OpenMP):**
+> Jika Anda ingin menjalankan biner secara manual tanpa skrip otomatisasi, pastikan untuk mengunci *thread* hanya pada P-Core untuk menghindari degradasi performa akibat E-Core:
+> ```bash
+> OMP_NUM_THREADS=6 OMP_PLACES=cores OMP_PROC_BIND=close ./gemm_runner --mode omp --size 2048
+> ```
+
 ---
 
 ## 📂 Struktur Folder Proyek
@@ -164,6 +175,12 @@ heterogeneous-gemm/
     └── diagrams/
         └── system_flowchart.txt # Alur logika benchmark (ASCII Diagram)
 ```
+
+---
+
+## 📜 Integritas Akademik & Lisensi
+
+Proyek ini disusun sepenuhnya sebagai syarat pemenuhan Ujian Akhir Semester untuk mata kuliah Arsitektur dan Sistem Komputer di Universitas Negeri Surabaya. Seluruh data benchmark yang disajikan bersifat riil dan diambil langsung dari perangkat keras yang tertera pada spesifikasi. Kode sumber dilisensikan di bawah [MIT License](LICENSE).
 
 ---
 
