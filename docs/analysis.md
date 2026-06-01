@@ -18,50 +18,50 @@
 
 ## 1. Pendahuluan
 
-Operasi perkalian matriks (GEMM - *General Matrix Multiplication*) merupakan salah satu operasi dasar yang paling krusial dalam beban kerja komputasi saintifik (*scientific computing*) dan kecerdasan artifisial (*deep learning*). Laporan ini menyajikan analisis komparatif performa komputasi perkalian matriks menggunakan tiga pendekatan arsitektur komputasi:
-* **Sequential CPU (Baseline):** Eksekusi instruksi *single-thread* pada CPU untuk memvalidasi fungsionalitas dan menetapkan dasar akurasi numerik (*ground truth*).
-* **Parallel CPU (OpenMP):** Pemanfaatan arsitektur *multi-core* CPU dengan membagi beban kerja secara paralel menggunakan instruksi pragma kompilator (*compiler pragmas*).
-* **Akselerasi GPU (OpenCL):** Eksploitasi kapabilitas *parallel throughput* berskala masif pada GPU dengan memanfaatkan teknik optimasi *tiling* pada memori lokal (*scratchpad memory*).
+Operasi perkalian matriks (GEMM - *General Matrix Multiplication*) merupakan salah satu operasi dasar yang paling krusial dalam beban kerja *scientific computing* dan *deep learning*. Laporan ini menyajikan analisis komparatif performa komputasi perkalian matriks menggunakan tiga pendekatan arsitektur:
+* **Sequential CPU (Baseline):** Eksekusi *single-thread* pada CPU untuk memvalidasi fungsionalitas dan menetapkan *ground truth*.
+* **Parallel CPU (OpenMP):** Pemanfaatan arsitektur *multi-core* CPU dengan membagi beban kerja secara paralel menggunakan pragma compiler.
+* **Akselerasi GPU (OpenCL):** Eksploitasi *parallel throughput* berskala masif pada GPU dengan memanfaatkan teknik optimasi *Matrix Tiling* pada *local memory* (`__local` *scratchpad cache*).
 
 ---
 
 ## 2. Konfigurasi Sistem Pengujian
 
-Benchmark dijalankan pada sistem dengan spesifikasi perangkat lunak dan perangkat keras sebagai berikut:
-* **Processor (CPU):** Intel® Core™ i5-14450HX
-  * Arsitektur Hybrid: 6 Performance Cores (P-Cores) & 4 Efficient Cores (E-Cores)
-  * Pemrosesan Paralel: 16 Threads, Hyper-Threading Enabled, 20 MB Intel® Smart Cache
-  * Frekuensi Turbo Maksimum: 4.80 GHz
-* **Graphics Card (GPU):** NVIDIA® GeForce RTX™ 4050 Laptop GPU
-  * Arsitektur: Ada Lovelace (6 GB GDDR6 Dedicated VRAM)
-  * Spesifikasi Compute: 2560 CUDA Cores, Dukungan FMA (Fused Multiply-Add), & Tensor Cores
-  * Daya Kerja Maksimum (TGP): Up to 96W
+Benchmark dijalankan pada sistem dengan spesifikasi sebagai berikut:
+* **CPU:** Intel® Core™ i5-14450HX
+  * Hybrid Architecture: 6 Performance Cores (P-Cores) & 4 Efficient Cores (E-Cores)
+  * Specs: 16 Threads, Hyper-Threading Enabled, 20 MB Intel® Smart Cache
+  * Max Turbo Frequency: 4.80 GHz
+* **GPU:** NVIDIA® GeForce RTX™ 4050 Laptop GPU
+  * Architecture: Ada Lovelace (6 GB GDDR6 Dedicated VRAM)
+  * Compute Cores: 2560 CUDA Cores, FMA (Fused Multiply-Add) & Tensor Cores
+  * Max TGP: Up to 96W
 * **Memory & Interconnect:**
-  * RAM Sistem: 16 GB DDR5 Dual-Channel @ 4800 MHz
-  * Jalur Komunikasi: PCIe Gen 4 x8 Lane (CPU ↔ GPU Communication)
-* **Sistem Operasi:** Arch Linux x86_64 (Kernel Linux 6.x Mainline)
-* **Toolchain & Compiler:** GCC 14.1.1 (C11 Standard)
-* **API Akselerasi CPU:** OpenMP 4.5 (Multi-threaded Parallelism)
-* **API Akselerasi GPU:** OpenCL 1.2 (NVIDIA OpenCL ICD Platform)
+  * System RAM: 16 GB DDR5 Dual-Channel @ 4800 MHz
+  * Interface: PCIe Gen 4 x8 Lane (CPU ↔ GPU Communication)
+* **OS:** Arch Linux x86_64 (Linux Kernel 6.x Mainline)
+* **Compiler:** GCC 14.1.1 (C11 Standard)
+* **CPU Parallel API:** OpenMP 4.5
+* **GPU Acceleration API:** OpenCL 1.2 (NVIDIA OpenCL ICD Platform)
 
 ---
 
 ## 3. Metodologi Pengujian dan Validasi
 
 ### Metodologi Benchmark
-* Matriks bertipe `float` (presisi tunggal) berukuran kuadrat $N \times N$, dengan ukuran problem $N \in \{256, 512, 1024, 2048\}$.
-* Setiap pengujian didahului oleh **1x warm-up run** (tidak dimasukkan dalam perhitungan waktu eksekusi) untuk mengeliminasi waktu inisialisasi *driver* dan kompilasi *runtime* (*Just-In-Time compilation*) kernel OpenCL.
-* Metrik waktu eksekusi dihitung berdasarkan nilai rata-rata dari **3x measurement runs**.
-* Hasil komputasi diekspor secara otomatis ke dalam berkas CSV dengan format `mode,size,time,valid`.
+* Matriks `float` (single-precision) berukuran $N \times N$, dengan ukuran $N \in \{256, 512, 1024, 2048\}$.
+* Setiap pengujian didahului oleh **1x *warm-up run*** (tidak dimasukkan dalam perhitungan waktu eksekusi) untuk mengeliminasi waktu inisialisasi driver dan JIT compilation kernel OpenCL.
+* Metrik waktu eksekusi dihitung berdasarkan rata-rata dari **3x *measurement runs***.
+* Hasil akhir diekspor secara otomatis ke berkas CSV dengan format `mode,size,time,valid`.
 
 ### Protokol Validasi Epsilon
-Operasi *floating-point* pada arsitektur komputasi tidak bersifat asosiatif mutlak karena adanya galat pembulatan (*rounding error*) pada standar representasi IEEE 754:
+Operasi *floating-point* tidak bersifat asosiatif penuh karena adanya *rounding error* pada representasi standar IEEE 754:
 $$(A + B) + C \neq A + (B + C)$$
-Selain itu, arsitektur GPU NVIDIA memanfaatkan instruksi **Fused Multiply-Add (FMA)** yang menyatukan operasi perkalian dan penjumlahan dengan satu kali pembulatan perangkat keras, sementara instruksi standar CPU umumnya melakukan dua kali pembulatan terpisah. Konsekuensinya, hasil keluaran numerik antara komputasi CPU dan GPU tidak akan pernah identik secara absolut.
+Selain itu, arsitektur GPU NVIDIA memanfaatkan instruksi **Fused Multiply-Add (FMA)** yang menyatukan operasi perkalian dan penjumlahan dengan satu kali pembulatan di tingkat hardware, sedangkan CPU melakukan dua kali pembulatan terpisah. Konsekuensinya, nilai numerik antara CPU dan GPU tidak akan identik secara absolut.
 
-Validasi dilakukan dengan menghitung rata-rata akumulasi error absolut per elemen matriks:
+Validasi dilakukan dengan menghitung rata-rata selisih absolut (*mean absolute error*) per elemen:
 $$E_{avg} = \frac{1}{N^2} \sum_{i=0}^{N-1} \sum_{j=0}^{N-1} |P[i][j] - S[i][j]|$$
-Di mana $P$ adalah matriks hasil paralel (OpenMP atau OpenCL) dan $S$ adalah hasil sequential baseline. Hasil dinyatakan **VALID** jika $E_{avg} < 10^{-4}$ ($\epsilon = 1e-4$).
+Di mana $P$ adalah matriks hasil paralel (OpenMP atau OpenCL) dan $S$ adalah hasil sequential baseline. Hasil dinyatakan **VALID** jika $E_{avg} < \varepsilon$ ($\varepsilon = 10^{-4}$).
 
 ### 3.1 Diagram Alur Sistem (Flowchart)
 
@@ -110,28 +110,28 @@ Data hasil pengujian yang terekam adalah sebagai berikut:
 
 ### Analisis CPU (OpenMP)
 * **Karakteristik Penjadwalan:** Memanfaatkan pragma `#pragma omp parallel for collapse(2) schedule(static)` untuk mendistribusikan beban kerja secara merata pada *thread pool*.
-* **Analisis Performa:** Memberikan peningkatan kinerja yang stabil dengan tingkat percepatan (*speedup*) sekitar $2.8\times$ hingga $7.1\times$.
-* **Hambatan (Bottleneck):** Terjadi hambatan berupa *thread contention* dan kompetisi akses pada *L2/L3 cache* yang digunakan bersama oleh arsitektur hibrida CPU. Untuk alasan ini, jumlah *thread* dikunci pada **6 thread** (sesuai jumlah *Performance Cores* fisik) guna menghindari degradasi performa akibat dialokasikannya *thread* ke *Efficiency Cores* yang berkinerja lebih rendah, atau akibat fenomena *Hyper-Threading oversubscription*.
+* **Analisis Performa:** Memberikan peningkatan kinerja yang stabil dengan tingkat *speedup* sekitar $2.8\times$ hingga $7.1\times$.
+* **Hambatan (Bottleneck):** Terjadi *thread contention* dan kompetisi akses pada L2/L3 cache yang digunakan bersama oleh CPU hybrid. Oleh karena itu, jumlah *thread* dikunci pada **6 thread** (sesuai jumlah Performance Cores fisik) guna menghindari degradasi performa akibat dialokasikannya *thread* ke Efficiency Cores yang lebih lambat, atau akibat fenomena *Hyper-Threading oversubscription*.
 
 ### Analisis GPU (OpenCL)
-* **Optimasi Kernel (Tiling):** Kernel dirancang dengan teknik *tiling* yang mengelola memori lokal (*scratchpad memory*) berukuran $16 \times 16$. Setiap *work-item* memuat sepotong matriks ke memori lokal secara kolektif, meminimalisasi siklus akses berulang ke memori global GPU (VRAM) yang berlatensi tinggi.
+* **Optimasi Kernel (Tiling):** Kernel dirancang dengan teknik *Matrix Tiling* menggunakan *local memory* (*scratchpad memory*) berukuran $16 \times 16$. Setiap *work-item* memuat sepotong matriks ke memori lokal secara kolektif, mengurangi akses berulang ke *global memory* GPU (VRAM) yang berlatensi tinggi.
 * **Dampak Ukuran Matriks:**
-  * **Ukuran Kecil ($N \le 512$):** Akselerasi OpenCL memberikan performa yang tertinggal dibandingkan eksekusi *sequential* CPU (*speedup* $< 1\times$). Fenomena ini disebabkan oleh tingginya *overhead* inisialisasi *pipeline* OpenCL, latensi peluncuran kernel (*kernel launch latency*), dan beban transfer data melalui *bus* interkoneksi PCIe (*Host-to-Device* dan *Device-to-Host*) yang mendominasi total waktu eksekusi.
-  * **Ukuran Besar ($N \ge 1024$):** Kemampuan komputasi masif GPU mulai terjustifikasi. Pada dimensi problem $N = 2048$, perangkat GPU berhasil mencapai tingkat *speedup* **146.0×** dibandingkan eksekusi *sequential* CPU. Tingkat *compute throughput* GPU yang berskala masif, dikombinasikan dengan utilisasi *local memory coalescing* dan instruksi FMA, terbukti mampu menutupi (*hide latency*) beban *overhead* transfer PCIe secara penuh.
+  * **Ukuran Kecil ($N \le 512$):** Akselerasi OpenCL memberikan performa yang lebih lambat dibandingkan *sequential* CPU (*speedup* $< 1\times$). Hal ini disebabkan oleh *overhead* inisialisasi *pipeline* OpenCL, *kernel launch latency*, dan transfer data melalui bus PCIe (*Host-to-Device* dan *Device-to-Host*) yang mendominasi total waktu eksekusi.
+  * **Ukuran Besar ($N \ge 1024$):** Kemampuan *parallel throughput* GPU mulai terjustifikasi. Pada ukuran matriks $N = 2048$, GPU berhasil mencapai *speedup* **146.0×** dibandingkan CPU sekuensial. Kecepatan komputasi GPU yang tinggi, dikombinasikan dengan utilisasi *local memory* dan instruksi FMA, mampu menyembunyikan (*hide latency*) *overhead* transfer PCIe secara penuh.
 
 ---
 
 ## 5. Kesimpulan Akademik
 
-1. **Titik Persimpangan Performa (Crossover Point):** Keunggulan akselerasi GPU (OpenCL) baru tercapai ketika dimensi matriks ($N$) cukup eskalatif untuk menyembunyikan *overhead* transfer memori PCIe. Pada matriks berskala kecil, penjadwalan *multi-core* CPU (OpenMP) adalah arsitektur pilihan karena *overhead* transfer interkoneksi bernilai nol.
-2. **Kesesuaian Validasi:** Disparitas hasil komputasi bernilai sangat marjinal dan telah berhasil divalidasi menggunakan ambang batas epsilon ($\epsilon = 1e-4$), yang mengonfirmasi determinisme fungsional di seluruh topologi paralel sistem heterogen.
-3. **Kepatuhan Roofline Model:** Temuan eksperimental ini menegaskan bahwa limitasi performa (*performance bounds*) pada komputasi heterogen didikte secara langsung oleh rasio antara *compute intensity* dan *memory transfer overhead*, sejalan dengan postulat teoretis *Roofline Model*.
+1. **Crossover Point Performa:** Keunggulan akselerasi GPU (OpenCL) baru tercapai ketika ukuran matriks ($N$) cukup besar untuk menutupi *overhead* transfer PCIe. Pada matriks kecil, paralel CPU (OpenMP) adalah pilihan terbaik karena *overhead* transfer memori bernilai nol.
+2. **Kesesuaian Validasi:** Selisih hasil komputasi sangat kecil dan berhasil divalidasi dengan ambang batas epsilon ($\varepsilon = 10^{-4}$), mengonfirmasi keakuratan hasil di seluruh implementasi paralel.
+3. **Kepatuhan Roofline Model:** Temuan eksperimental ini menegaskan bahwa performa pada sistem heterogen dipengaruhi oleh rasio antara *compute intensity* dan *memory transfer overhead*, sejalan dengan teori *Roofline Model*.
 
-## 6. Batasan Sistem dan Penelitian Lanjutan
+## 6. Batasan Sistem dan Pengembangan Lanjutan
 
-Meskipun sistem benchmark ini memberikan analisis performa heterogen yang komprehensif, terdapat beberapa keterbatasan teknis yang dapat dikembangkan lebih lanjut:
-1. **Penjadwalan Blok Dinamis (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi $16 \times 16$. Penelitian lanjutan dapat menerapkan mekanisme pencarian dinamis untuk menguji Work-Group Size terbaik secara runtime.
-2. **Ketiadaan API Proprietary (CUDA):** Eksperimen GPU didasarkan pada pustaka open-source cross-platform OpenCL 1.2, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA Core atau CUBLAS.
-3. **Optimasi Vektor CPU (Explicit SIMD):** Paralelisasi CPU mengandalkan optimasi otomatis compiler dan pragma OpenMP, belum menggunakan instruksi intrinsik perangkat keras secara eksplisit (seperti AVX2/AVX-512).
+Meskipun sistem benchmark ini memberikan analisis performa yang komprehensif, terdapat beberapa batasan teknis yang dapat dikembangkan lebih lanjut:
+1. **Auto-Tuning Ukuran Blok (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi $16 \times 16$. Pengembangan lanjutan dapat menerapkan pencarian dinamis untuk menguji *work-group size* terbaik secara *runtime*.
+2. **Ketiadaan API Proprietary (CUDA):** Pengujian GPU didasarkan pada OpenCL 1.2, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA atau CUBLAS.
+3. **Optimasi Vektor CPU (Explicit SIMD):** Paralelisasi CPU mengandalkan *auto-vectorization* compiler dan pragma OpenMP, belum menggunakan *SIMD intrinsics* secara eksplisit (seperti AVX2/AVX-512).
 
 ---

@@ -2,10 +2,13 @@
   <img src="docs/diagrams/gemm_banner.png" alt="Spanduk Komputasi Heterogen GEMM" width="100%">
 </p>
 
-# Analisis Kinerja Komputasi Heterogen pada General Matrix Multiplication (GEMM): Studi Perbandingan CPU dan GPU
+# Heterogeneous GEMM Performance Analysis (CPU vs GPU)
 
-Ujian Akhir Semester Genap Tahun Akademik 2025/2026 | **Arsitektur dan Sistem Komputer**  
-**Program Studi S1 Kecerdasan Artifisial (Kelas 2025B)**, Fakultas Matematika dan Ilmu Pengetahuan Alam, **Universitas Negeri Surabaya**
+### *Analisis Kinerja Komputasi Heterogen pada General Matrix Multiplication (GEMM): Studi Perbandingan CPU dan GPU*
+
+> 🏫 **Proyek UAS Arsitektur & Sistem Komputer**  
+> **Program Studi S1 Kecerdasan Artifisial (Kelas 2025B)**  
+> **Fakultas Matematika dan Ilmu Pengetahuan Alam, Universitas Negeri Surabaya**
 
 ---
 
@@ -20,40 +23,21 @@ Ujian Akhir Semester Genap Tahun Akademik 2025/2026 | **Arsitektur dan Sistem Ko
 
 ---
 
-## 👥 Kelompok Penyusun
-
-* **Raffi Khairan Hidayat** (NIM: `25032014040`)
-* **Muhammad Panji Asmoro Bangun** (NIM: `25032014088`)
-* **Ridho Aryo Ramadhan** (NIM: `25032014069`)
-
-**Program Studi S1 Kecerdasan Artifisial (Kelas 2025B)**  
-Fakultas Matematika dan Ilmu Pengetahuan Alam, **Universitas Negeri Surabaya**  
-**Dosen Pengampu:** Dr. Widi Aribowo, S.T., M.T. & Harmon Prayogi, M.Sc.  
-*Slogan Universitas: "Growing with character"*  
-
----
-
-## 🎥 Video Demonstrasi Proyek
-
-Tautan publikasi video presentasi dan demonstrasi eksekusi program benchmark komputasi heterogen (durasi 10–15 menit):
-
-* 📺 **Tautan YouTube:** [Tautan Video Presentasi Kelompok](https://youtu.be/ID_VIDEO_ANDA) *(Tautan akan diisi oleh tim setelah sesi perekaman demonstrasi).*
-
----
-
 ## 📌 Deskripsi Proyek
 
 Proyek riset mandiri ini mengimplementasikan perkalian matriks tingkat tinggi (**GEMM - General Matrix Multiplication**) menggunakan arsitektur komputasi heterogen. Secara matematis, perkalian matriks untuk elemen $C_{i,j}$ dari matriks hasil $C = A \times B$ dengan ukuran $N \times N$ didefinisikan sebagai:
 
 $$C_{i,j} = \sum_{k=0}^{N-1} A_{i,k} \times B_{k,j}$$
 
-Kami membandingkan tiga pendekatan utama untuk menganalisis efisiensi, throughput komputasi (*compute throughput*), dan batasan perangkat keras (*hardware bottleneck*):
+Kami membandingkan tiga pendekatan utama untuk menganalisis efisiensi, throughput komputasi (*compute throughput*), dan batasan hardware (*hardware bottleneck*):
 
 1. **Sequential CPU (Baseline):** Algoritma perkalian matriks standar *row-major* dengan loop bersarang tiga tingkat (*triple nested loop*) yang dieksekusi pada satu *core* CPU tunggal (*single-thread*) untuk menetapkan dasar keakuratan matematika (*ground truth*).
 2. **Parallel CPU (OpenMP):** Paralelisasi *multi-threaded* dengan pembagian kerja multi-dimensi (`collapse(2)`) dan pemetaan beban kerja statis (`schedule(static)`) yang diikat (*pinned*) secara eksplisit pada *Performance Cores* (P-Cores) fisik CPU untuk meminimalkan *thread migration overhead*.
 3. **Akselerasi GPU (OpenCL):** Pemrosesan paralel berskala masif memanfaatkan arsitektur GPU NVIDIA Laptop RTX 4050 dengan optimasi *Matrix Tiling* pada memori lokal (`__local` *scratchpad cache*) guna meminimalkan latensi akses memori global (*global memory access latency*).
 
-### 📐 Aliran Data Arsitektur Sistem (Data Flow)
+---
+
+## 📐 Arsitektur & Aliran Data Sistem
 
 ```mermaid
 graph LR
@@ -67,18 +51,25 @@ graph LR
     PCIe <--> VRAM
 ```
 
+*Alur data sistem di atas menggambarkan pembagian kerja antara **Host** (CPU Intel i5-14450HX) dan **Device** (GPU NVIDIA RTX 4050 Laptop). Alokasi memori awal diatur oleh RAM Host, kemudian disalin ke VRAM Device melalui jalur komunikasi **PCIe Gen 4 x8**. Setelah kernel komputasi GPU selesai memproses perkalian matriks secara paralel, hasilnya disalin kembali ke RAM Host untuk divalidasi dan dianalisis.*
+
 ---
 
-## 🚀 Fitur Utama Sistem
+## 🚀 Fitur Utama
 
 * **Optimasi Matrix Tiling:** Desain kernel OpenCL yang membagi matriks berdimensi besar menjadi *tile* kecil berukuran $16 \times 16$ untuk memaksimalkan *spatial & temporal locality* pada *L1/L2 cache* GPU.
 * **Protokol Validasi Epsilon ($\varepsilon = 10^{-4}$):** Algoritma pencocokan presisi tingkat tinggi berbasis akumulasi rata-rata selisih absolut untuk mengatasi perbedaan numerik *floating-point* yang muncul akibat eksekusi instruksi *Fused Multiply-Add* (FMA) pada arsitektur GPU.
-* **Pengukuran Pipeline GPU Terinci:** Mengisolasi waktu transfer data *Host-to-Device* (H2D), waktu eksekusi kernel murni pada perangkat keras GPU, dan transfer *Device-to-Host* (D2H) guna mendeteksi hambatan latensi pada bus interkoneksi (*PCIe bus bottleneck latency*).
+* **Pengukuran Pipeline GPU Terinci:** Mengisolasi waktu transfer data *Host-to-Device* (H2D), waktu eksekusi kernel murni pada hardware GPU, dan transfer *Device-to-Host* (D2H) guna mendeteksi hambatan latensi pada bus interkoneksi (*PCIe bus bottleneck latency*).
 * **Otomatisasi Penuh:** Skrip penganalisis otomatis (`scripts/benchmark.sh` & `scripts/generate_graphs.py`) untuk mengeksekusi matriks pengujian $N \in \{256, 512, 1024, 2048\}$ dengan visualisasi grafik analisis performa berbasis tema gelap (*dark theme*).
 
 ---
 
-## 💻 Konfigurasi Sistem Pengujian
+## 💻 Konfigurasi Sistem
+
+Untuk menjamin tingkat akurasi dan replikasi hasil pengujian, seluruh pengujian dijalankan pada lingkungan komputasi dengan konfigurasi terstandar berikut:
+
+<details>
+<summary><b>🔍 Klik untuk melihat detail spesifikasi hardware dan software</b></summary>
 
 * **Processor (CPU):** Intel® Core™ i5-14450HX
   * Arsitektur Hybrid: 6 Performance Cores (P-Cores) & 4 Efficient Cores (E-Cores)
@@ -96,11 +87,13 @@ graph LR
 * **API Akselerasi CPU:** OpenMP 4.5 (Multi-threaded Parallelism)
 * **API Akselerasi GPU:** OpenCL 1.2 (NVIDIA OpenCL ICD Platform)
 
+</details>
+
 ---
 
-## 📊 Hasil Pengujian Sistem (Rata-rata 3x Running)
+## 📊 Hasil Pengujian
 
-Berikut adalah data hasil pengujian riil yang tercatat pada sistem kami:
+Berikut adalah data hasil pengujian riil yang tercatat pada sistem kami (diambil dari rata-rata 3x running eksekusi setelah 1x *warmup*):
 
 | Metode Eksekusi | N = 256 | N = 512 | N = 1024 | N = 2048 | Validitas Numerik |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -114,7 +107,9 @@ Berikut adalah data hasil pengujian riil yang tercatat pada sistem kami:
 > * **GPU Dominance & Speedup (N=2048):** Pada data masif, arsitektur *parallel throughput* GPU RTX 4050 berhasil mengungguli CPU sekuensial hingga **~146 kali lebih cepat** berkat taktik *Matrix Tiling* dan optimalisasi memori lokal.
 > * **Roofline Model Compliance:** Hasil ini mengindikasikan bahwa performa sistem heterogen sangat dipengaruhi oleh rasio antara *compute intensity* dan *memory transfer overhead*, sesuai dengan prinsip dasar *Roofline Model*.
 
-### 📈 Grafik Kinerja (Dark Clean Elegant Theme)
+---
+
+## 📈 Grafik Kinerja
 
 #### 1. Perbandingan Waktu Eksekusi (Lower is Better)
 ![Execution Time Comparison](test/graphs/execution_time.png)
@@ -127,12 +122,12 @@ Berikut adalah data hasil pengujian riil yang tercatat pada sistem kami:
 
 ---
 
-## 🛠️ Langkah-Langkah Menjalankan Sistem
+## 🛠️ Cara Menjalankan
 
 ### 📦 Prasyarat Instalasi
 
-#### 1. Lingkungan Linux (Arch/Debian/Ubuntu)
-Pastikan perkakas kompilasi dan pustaka berikut telah terinstal pada sistem Anda:
+#### 1. OS Linux (Arch/Debian/Ubuntu)
+Pastikan tools kompilasi dan pustaka berikut telah terinstal pada sistem Anda:
 ```bash
 # Untuk Arch Linux
 sudo pacman -S base-devel opencl-headers opencl-nvidia python-matplotlib python-numpy
@@ -141,12 +136,12 @@ sudo pacman -S base-devel opencl-headers opencl-nvidia python-matplotlib python-
 sudo apt-get install build-essential opencl-headers intel-opencl-icd nvidia-opencl-icd python3-matplotlib python3-numpy
 ```
 
-#### 2. Lingkungan Windows
+#### 2. OS Windows
 Kode program ini telah dioptimasi untuk dapat berjalan di sistem operasi Windows melalui tiga metode alternatif:
 * **Metode WSL2 (Sangat Direkomendasikan):** Jalankan eksekusi program di dalam kontainer Windows Subsystem for Linux (WSL2) dengan mengikuti prosedur instalasi Linux Debian/Ubuntu di atas. Pustaka OpenCL akan otomatis terhubung ke kartu grafis host Windows.
 * **Metode Native Windows (MSYS2 / MinGW-w64):**
   1. Unduh dan pasang [MSYS2](https://www.msys2.org/).
-  2. Buka terminal MSYS2 UCRT64 dan jalankan perintah instalasi perkakas kompilasi:
+  2. Buka terminal MSYS2 UCRT64 dan jalankan perintah instalasi tools kompilasi:
      ```bash
      pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-opencl
      ```
@@ -159,37 +154,39 @@ Kode program ini telah dioptimasi untuk dapat berjalan di sistem operasi Windows
 
 ---
 
-### 1. Build Kode Sumber
-Lakukan kompilasi program untuk membuat executable target `gemm_runner`:
-```bash
-make build
-```
+### 💻 Instruksi Eksekusi
 
-### 2. Jalankan Pengujian Otomatis
-Jalankan benchmark otomatis untuk seluruh matriks pengujian:
-```bash
-make benchmark
-```
-*Hasil waktu eksekusi mentah akan terekspor secara otomatis ke `test/execution_time.csv`.*
+1. **Build Kode Sumber:**
+   Lakukan kompilasi program untuk membuat executable target `gemm_runner`:
+   ```bash
+   make build
+   ```
 
-### 3. Hasilkan Grafik Visualisasi
-Jalankan visualizer untuk menghasilkan grafik analisis performa:
-```bash
-make graphs
-```
-*Grafik output beresolusi tinggi akan tersimpan di dalam folder `test/graphs/`.*
+2. **Jalankan Pengujian Otomatis:**
+   Jalankan benchmark otomatis untuk seluruh matriks pengujian:
+   ```bash
+   make benchmark
+   ```
+   *Hasil waktu eksekusi mentah akan terekspor secara otomatis ke `test/execution_time.csv`.*
 
-### 4. Eksekusi Seluruh Alur Kerja (All-in-One)
-Untuk mengompilasi, menjalankan benchmark, dan menghasilkan grafik sekaligus:
-```bash
-make all
-```
+3. **Hasilkan Grafik Visualisasi:**
+   Jalankan visualizer untuk menghasilkan grafik analisis performa:
+   ```bash
+   make graphs
+   ```
+   *Grafik output beresolusi tinggi akan tersimpan di dalam folder `test/graphs/`.*
 
-### 5. Membersihkan Proyek
-Untuk menghapus file biner hasil kompilasi dan reset file benchmark:
-```bash
-make clean
-```
+4. **Eksekusi Seluruh Alur Kerja (All-in-One):**
+   Untuk mengompilasi, menjalankan benchmark, dan menghasilkan grafik sekaligus:
+   ```bash
+   make all
+   ```
+
+5. **Membersihkan Proyek:**
+   Untuk menghapus file biner hasil compiler dan reset file benchmark:
+   ```bash
+   make clean
+   ```
 
 > 📌 **Catatan Hardware-Aware untuk Eksekusi Manual (OpenMP):**
 > Jika Anda ingin menjalankan biner secara manual tanpa skrip otomatisasi, pastikan untuk mengunci *thread* hanya pada P-Core untuk menghindari degradasi performa akibat E-Core:
@@ -199,11 +196,11 @@ make clean
 
 ---
 
-## 📂 Struktur Folder Proyek
+## 📂 Struktur Folder
 
 ```
 heterogeneous-gemm/
-├── Makefile                 # Otomatisasi kompilasi & pengujian
+├── Makefile                 # Otomatisasi compiler & pengujian
 ├── README.md                # Dokumentasi utama proyek UAS
 ├── src/                     # Seluruh kode sumber C & OpenCL kernel
 │   ├── main.c               # Driver benchmark utama
@@ -222,6 +219,7 @@ heterogeneous-gemm/
 └── docs/                    # Berkas laporan ilmiah & diagram alir
     ├── analysis.md          # Laporan pembahasan komprehensif
     └── diagrams/
+        ├── gemm_banner.png      # Gambar banner proyek
         └── system_flowchart.txt # Alur logika benchmark (ASCII Diagram)
 ```
 
@@ -232,14 +230,39 @@ heterogeneous-gemm/
 Meskipun sistem benchmark ini memberikan analisis performa heterogen yang komprehensif, terdapat beberapa keterbatasan teknis yang dapat dikembangkan lebih lanjut:
 1. **Penjadwalan Blok Dinamis (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi $16 \times 16$. Implementasi tingkat lanjut dapat memanfaatkan mekanisme pencarian adaptif untuk menguji Work-Group Size terbaik berdasarkan karakteristik hardware runtime.
 2. **Ketiadaan API Proprietary (CUDA):** Pengujian GPU hanya didasarkan pada pustaka open-source cross-platform OpenCL 1.2, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA Core atau CUBLAS teroptimasi.
-3. **Optimasi Vektor CPU (Explicit SIMD):** Bagian paralelisasi CPU saat ini sepenuhnya mengandalkan optimasi compiler otomatis dan pragma OpenMP, tanpa pemanfaatan instruksi intrinsik instruksi vektor perangkat keras secara eksplisit (seperti AVX2/AVX-512).
+3. **Optimasi Vektor CPU (Explicit SIMD):** Bagian paralelisasi CPU saat ini sepenuhnya mengandalkan optimasi compiler otomatis dan pragma OpenMP, tanpa pemanfaatan instruksi intrinsik instruksi vektor hardware secara eksplisit (seperti AVX2/AVX-512).
 
 ---
 
-## 📜 Integritas Akademik & Lisensi
+## 🎥 Video Demonstrasi Proyek
 
-Proyek ini disusun sepenuhnya sebagai syarat pemenuhan Ujian Akhir Semester untuk mata kuliah Arsitektur dan Sistem Komputer di Universitas Negeri Surabaya. Seluruh data benchmark yang disajikan bersifat riil dan diambil langsung dari perangkat keras yang tertera pada spesifikasi. Kode sumber dilisensikan di bawah [MIT License](LICENSE).
+Berikut adalah video presentasi ilmiah dan demonstrasi eksekusi program benchmark komputasi heterogen (durasi 10–15 menit):
+
+* 📺 **Tautan YouTube:** [Tonton Video Presentasi Kelompok](https://youtu.be/ID_VIDEO_ANDA) *(Tautan ini akan diperbarui setelah sesi perekaman demonstrasi).*
 
 ---
 
-> www.unesa.ac.id | **"Growing with character"**
+## 👥 Kelompok Penyusun
+
+Proyek penelitian mandiri ini disusun oleh Kelompok UAS Mata Kuliah **Arsitektur dan Sistem Komputer** (Program Studi S1 Kecerdasan Artifisial, Kelas 2025B, FMIPA, Universitas Negeri Surabaya):
+
+* 👤 **Raffi Khairan Hidayat** (NIM: `25032014040`)
+* 👤 **Muhammad Panji Asmoro Bangun** (NIM: `25032014088`)
+* 👤 **Ridho Aryo Ramadhan** (NIM: `25032014069`)
+
+**Dosen Pengampu:**  
+* Dr. Widi Aribowo, S.T., M.T.  
+* Harmon Prayogi, M.Sc.
+
+---
+
+## 📜 Lisensi & Integritas Akademik
+
+Proyek ini disusun sepenuhnya sebagai syarat pemenuhan Ujian Akhir Semester untuk mata kuliah Arsitektur dan Sistem Komputer di Universitas Negeri Surabaya. Seluruh data benchmark yang disajikan bersifat riil dan diambil langsung dari hardware yang tertera pada spesifikasi.
+
+Kode sumber dan dokumentasi ini dilisensikan di bawah [MIT License](LICENSE).
+
+---
+<p align="center">
+  <b>www.unesa.ac.id | "Growing with character"</b>
+</p>
