@@ -105,7 +105,7 @@ Untuk menjamin tingkat akurasi dan replikasi actual test results, seluruh test d
 ### 🔑 Temuan Kunci (Key Findings)
 
 * ⚡ **Crossover Point (N = 512):** Akselerasi GPU (OpenCL) mulai mengungguli CPU seiring bertambahnya ukuran matriks, di mana biaya transfer memori PCIe mulai terkompensasi oleh kepadatan komputasi.
-* 📈 **Percepatan Maksimum (~157x):** Pada ukuran matriks N = 2048, GPU NVIDIA RTX 4050 mengungguli CPU sequential hingga **157.19x** dan CPU paralel (OpenMP) hingga **20.50x**.
+* 📈 **Percepatan Maksimum (~157x):** Pada ukuran matriks N = 2048, GPU NVIDIA RTX 4050 mengungguli CPU sequential hingga **156.87x** dan CPU paralel (OpenMP) hingga **20.61x**.
 * ⚠️ **PCIe Latency Overhead:** Pada matriks kecil (N = 256), GPU justru lambat (0.09x dari sequential) akibat latensi inisialisasi kernel dan transfer memori melalui bus PCIe yang mendominasi siklus execution.
 * 🧠 **Memory-bound vs Compute-bound:** Bottleneck sistem bergeser dari bandwidth bus transfer data (pada N kecil) ke throughput komputasi aritmatika (pada N besar).
 
@@ -117,18 +117,18 @@ Berikut adalah data actual test results yang tercatat pada sistem kami (diambil 
 
 | Ukuran Matriks (N) | Metode Execution | Waktu Rata-rata (s) | Speedup (vs Baseline) | Kinerja Komputasi (GFLOPS) | Validitas Numerik |
 | :---: | :--- | :---: | :---: | :---: | :---: |
-| **N = 256** | Sequential (CPU Baseline) | 0.0084 s | 1.00x *(Reference)* | 4.00 | *Reference* |
-| | OpenMP (6 Threads P-Core) | 0.0024 s | 3.54x | 14.18 | ✅ **VALID** |
-| | OpenCL (GPU Tiled) | 0.0910 s | 0.09x | 0.37 | ✅ **VALID** |
-| **N = 512** | Sequential (CPU Baseline) | 0.0654 s | 1.00x *(Reference)* | 4.10 | *Reference* |
-| | OpenMP (6 Threads P-Core) | 0.0119 s | 5.49x | 22.51 | ✅ **VALID** |
-| | OpenCL (GPU Tiled) | 0.0876 s | 0.75x | 3.07 | ✅ **VALID** |
-| **N = 1024** | Sequential (CPU Baseline) | 2.4485 s | 1.00x *(Reference)* | 0.88 | *Reference* |
-| | OpenMP (6 Threads P-Core) | 0.3953 s | 6.19x | 5.43 | ✅ **VALID** |
-| | OpenCL (GPU Tiled) | 0.1015 s | 24.13x | 21.16 | ✅ **VALID** |
-| **N = 2048** | Sequential (CPU Baseline) | 23.7646 s | 1.00x *(Reference)* | 0.72 | *Reference* |
-| | OpenMP (6 Threads P-Core) | 3.0985 s | 7.67x | 5.54 | ✅ **VALID** |
-| | OpenCL (GPU Tiled) | 0.1512 s | 157.19x | 113.64 | ✅ **VALID** |
+| **N = 256** | Sequential (CPU Baseline) | 0.0084 s | 1.00x *(Reference)* | 3.99 | *Reference* |
+| | OpenMP (6 Threads P-Core) | 0.0025 s | 3.41x | 13.59 | ✅ **VALID** |
+| | OpenCL (GPU Tiled) | 0.0911 s | 0.09x | 0.37 | ✅ **VALID** |
+| **N = 512** | Sequential (CPU Baseline) | 0.0656 s | 1.00x *(Reference)* | 4.09 | *Reference* |
+| | OpenMP (6 Threads P-Core) | 0.0128 s | 5.13x | 21.00 | ✅ **VALID** |
+| | OpenCL (GPU Tiled) | 0.0867 s | 0.76x | 3.10 | ✅ **VALID** |
+| **N = 1024** | Sequential (CPU Baseline) | 2.4611 s | 1.00x *(Reference)* | 0.87 | *Reference* |
+| | OpenMP (6 Threads P-Core) | 0.3897 s | 6.32x | 5.51 | ✅ **VALID** |
+| | OpenCL (GPU Tiled) | 0.1012 s | 24.31x | 21.22 | ✅ **VALID** |
+| **N = 2048** | Sequential (CPU Baseline) | 23.7939 s | 1.00x *(Reference)* | 0.72 | *Reference* |
+| | OpenMP (6 Threads P-Core) | 3.1268 s | 7.61x | 5.49 | ✅ **VALID** |
+| | OpenCL (GPU Tiled) | 0.1517 s | 156.87x | 113.26 | ✅ **VALID** |
 
 *Catatan: GFLOPS dihitung menggunakan rumus standar operasi perkalian matriks umum: GFLOPS = (2 × N³) / (t × 10⁹).*
 
@@ -140,7 +140,7 @@ Berikut adalah data actual test results yang tercatat pada sistem kami (diambil 
 ### 🔬 Analisis Kinerja Teoritis vs Aktual (Theoretical vs Actual Performance)
 
 * **GPU Peak FP32 (Teoritis):** ~9.0 TFLOPS (9,000 GFLOPS)
-* **GPU Measured FP32 (Aktual pada N = 2048):** 113.64 GFLOPS (Efisiensi: ~1.26%)
+* **GPU Measured FP32 (Aktual pada N = 2048):** 113.26 GFLOPS (Efisiensi: ~1.26%)
 
 **Analisis Celah Efisiensi:**
 Meskipun pengoptimalan *Matrix Tiling* berukuran 16 × 16 pada memori lokal berhasil meningkatkan efisiensi secara signifikan dibandingkan akses memori global langsung (karena memanfaatkan cache L1/L2 GPU secara optimal), performa aktual masih jauh di bawah batas teoritis kartu grafis. Hal ini disebabkan oleh:
@@ -166,7 +166,7 @@ Meskipun pengoptimalan *Matrix Tiling* berukuran 16 × 16 pada memori lokal berh
 
 #### 2. Faktor Peningkatan Kinerja / Speedup (Higher is Better)
 ![Speedup Comparison](test/graphs/speedup_v2.png)
-*💡 **Insight:** Speedup GPU melonjak secara ekspornensial dari 0.09x (pada N = 256) hingga mencapai 157.19x (pada N = 2048), memvalidasi keunggulan komputasi throughput GPU pada massive workload.*
+*💡 **Insight:** Speedup GPU melonjak secara ekspornensial dari 0.09x (pada N = 256) hingga mencapai 156.87x (pada N = 2048), memvalidasi keunggulan komputasi throughput GPU pada massive workload.*
 
 #### 3. Ringkasan Kinerja Gabungan (Log Scale)
 ![Combined Performance Overview](test/graphs/combined_overview_v2.png)
