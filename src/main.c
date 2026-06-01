@@ -1,6 +1,5 @@
 #include "gemm_common.h"
 #include <string.h>
-#include <getopt.h>
 
 enum Mode { MODE_SEQ = 1, MODE_OMP = 2, MODE_OPENCL = 4, MODE_ALL = 7 };
 
@@ -10,11 +9,11 @@ static void print_usage(const char *prog)
         "Usage: %s --mode <seq|omp|opencl|all> --size <N> [--threads <T>]\n"
         "\n"
         "Options:\n"
-        "  --mode     seq | omp | opencl | all\n"
-        "  --size     Matrix dimension N (e.g. 256, 512, 1024, 2048)\n"
-        "  --threads  Number of OpenMP threads (default: 6)\n"
-        "  --csv      Output only CSV lines (no verbose info)\n"
-        "  --help     Show this help\n", prog);
+        "  --mode, -m     seq | omp | opencl | all\n"
+        "  --size, -s     Matrix dimension N (e.g. 256, 512, 1024, 2048)\n"
+        "  --threads, -t  Number of OpenMP threads (default: 6)\n"
+        "  --csv, -c      Output only CSV lines (no verbose info)\n"
+        "  --help, -h     Show this help\n", prog);
 }
 
 static double benchmark_sequential(const float *A, const float *B,
@@ -104,30 +103,44 @@ int main(int argc, char **argv)
     int mode     = 0;
     int csv_only = 0;
 
-    static struct option long_opts[] = {
-        { "mode",    required_argument, NULL, 'm' },
-        { "size",    required_argument, NULL, 's' },
-        { "threads", required_argument, NULL, 't' },
-        { "csv",     no_argument,       NULL, 'c' },
-        { "help",    no_argument,       NULL, 'h' },
-        { NULL, 0, NULL, 0 }
-    };
-
-    int opt;
-    while ((opt = getopt_long(argc, argv, "m:s:t:ch", long_opts, NULL)) != -1) {
-        switch (opt) {
-        case 'm':
-            if      (strcmp(optarg, "seq")    == 0) mode = MODE_SEQ;
-            else if (strcmp(optarg, "omp")    == 0) mode = MODE_OMP;
-            else if (strcmp(optarg, "opencl") == 0) mode = MODE_OPENCL;
-            else if (strcmp(optarg, "all")    == 0) mode = MODE_ALL;
-            else { fprintf(stderr, "Unknown mode: %s\n", optarg); return 1; }
-            break;
-        case 's': N        = atoi(optarg); break;
-        case 't': threads  = atoi(optarg); break;
-        case 'c': csv_only = 1;            break;
-        case 'h': print_usage(argv[0]);    return 0;
-        default:  print_usage(argv[0]);    return 1;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--mode") == 0 || strcmp(argv[i], "-m") == 0) {
+            if (i + 1 < argc) {
+                i++;
+                if      (strcmp(argv[i], "seq")    == 0) mode = MODE_SEQ;
+                else if (strcmp(argv[i], "omp")    == 0) mode = MODE_OMP;
+                else if (strcmp(argv[i], "opencl") == 0) mode = MODE_OPENCL;
+                else if (strcmp(argv[i], "all")    == 0) mode = MODE_ALL;
+                else { fprintf(stderr, "Unknown mode: %s\n", argv[i]); return 1; }
+            } else {
+                fprintf(stderr, "Option %s requires an argument.\n", argv[i]);
+                return 1;
+            }
+        } else if (strcmp(argv[i], "--size") == 0 || strcmp(argv[i], "-s") == 0) {
+            if (i + 1 < argc) {
+                i++;
+                N = atoi(argv[i]);
+            } else {
+                fprintf(stderr, "Option %s requires an argument.\n", argv[i]);
+                return 1;
+            }
+        } else if (strcmp(argv[i], "--threads") == 0 || strcmp(argv[i], "-t") == 0) {
+            if (i + 1 < argc) {
+                i++;
+                threads = atoi(argv[i]);
+            } else {
+                fprintf(stderr, "Option %s requires an argument.\n", argv[i]);
+                return 1;
+            }
+        } else if (strcmp(argv[i], "--csv") == 0 || strcmp(argv[i], "-c") == 0) {
+            csv_only = 1;
+        } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            print_usage(argv[0]);
+            return 0;
+        } else {
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            print_usage(argv[0]);
+            return 1;
         }
     }
 

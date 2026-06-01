@@ -34,12 +34,23 @@ static inline void matrix_free(float *M)
     free(M);
 }
 
+#ifdef _WIN32
+#include <windows.h>
+static inline double get_time(void)
+{
+    LARGE_INTEGER freq, counter;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+    return (double)counter.QuadPart / (double)freq.QuadPart;
+}
+#else
 static inline double get_time(void)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
 }
+#endif
 
 static inline int validate_result(const float *P, const float *S,
                                   int N, int verbose)
