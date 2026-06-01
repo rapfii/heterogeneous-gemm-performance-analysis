@@ -161,23 +161,23 @@ Meskipun pengoptimalan *Matrix Tiling* berukuran 16 × 16 pada memori lokal berh
 ## 📈 Grafik Kinerja
 
 #### 1. Execution Time Comparison (Lower is Better)
-![Execution Time Comparison](test/graphs/execution_time.png)
+![Execution Time Comparison](test/graphs/execution_time_v2.png)
 *💡 **Insight:** CPU OpenMP memimpin pada dimensi kecil (N ≤ 512), namun pada N ≥ 1024 waktu execution GPU OpenCL jauh lebih rendah karena beban transfer PCIe berhasil terkompensasi oleh kecepatan komputasi paralel.*
 
 #### 2. Faktor Peningkatan Kinerja / Speedup (Higher is Better)
-![Speedup Comparison](test/graphs/speedup.png)
+![Speedup Comparison](test/graphs/speedup_v2.png)
 *💡 **Insight:** Speedup GPU melonjak secara ekspornensial dari 0.09x (pada N = 256) hingga mencapai 157.19x (pada N = 2048), memvalidasi keunggulan komputasi throughput GPU pada massive workload.*
 
 #### 3. Ringkasan Kinerja Gabungan (Log Scale)
-![Combined Performance Overview](test/graphs/combined_overview.png)
+![Combined Performance Overview](test/graphs/combined_overview_v2.png)
 *💡 **Insight:** Grafik skala logaritma memperlihatkan kurva komparatif yang jelas tentang pergeseran keunggulan performa dari CPU ke GPU (crossover point terjadi di sekitar N = 512).*
 
 #### 4. Kinerja Komputasi - GFLOPS (Higher is Better)
-![GFLOPS](test/graphs/gflops.png)
+![GFLOPS](test/graphs/gflops_v2.png)
 *💡 **Insight:** GPU mencapai kinerja masif hingga >113 GFLOPS pada matriks besar, memvalidasi ekspektasi teoretis.*
 
 #### 5. Dekomposisi Waktu Execution GPU (GPU Breakdown)
-![GPU Breakdown](test/graphs/gpu_breakdown.png)
+![GPU Breakdown](test/graphs/gpu_breakdown_v2.png)
 *💡 **Insight:** Pada dimensi matriks kecil, sebagian besar waktu dihabiskan untuk Launch Overhead, JIT, dan transfer memori H2D/D2H, membuktikan bahwa utilisasi komputasi kernel murni (warna biru) baru mulai optimal pada ukuran matriks yang besar.*
 
 ---

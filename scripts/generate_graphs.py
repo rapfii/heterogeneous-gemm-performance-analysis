@@ -68,8 +68,8 @@ def plot_execution_time(data, sizes):
         
     apply_dark_theme(fig, ax)
     fig.tight_layout()
-    fig.savefig(os.path.join(GRAPH_DIR, "execution_time.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
-    fig.savefig(os.path.join(TEST_GRAPH_DIR, "execution_time.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(GRAPH_DIR, "execution_time_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(TEST_GRAPH_DIR, "execution_time_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
 
 def plot_speedup(data, sizes):
@@ -93,8 +93,8 @@ def plot_speedup(data, sizes):
         
     apply_dark_theme(fig, ax)
     fig.tight_layout()
-    fig.savefig(os.path.join(GRAPH_DIR, "speedup.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
-    fig.savefig(os.path.join(TEST_GRAPH_DIR, "speedup.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(GRAPH_DIR, "speedup_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(TEST_GRAPH_DIR, "speedup_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
 
 def plot_combined(data, sizes):
@@ -127,8 +127,8 @@ def plot_combined(data, sizes):
     
     fig.suptitle("Heterogeneous GEMM Performance Analysis (CPU vs GPU)", fontsize=15, fontweight="bold", color=TEXT_COLOR, y=0.98)
     fig.tight_layout()
-    fig.savefig(os.path.join(GRAPH_DIR, "combined_overview.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
-    fig.savefig(os.path.join(TEST_GRAPH_DIR, "combined_overview.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(GRAPH_DIR, "combined_overview_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(TEST_GRAPH_DIR, "combined_overview_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
 
 def plot_gflops(data, sizes):
@@ -152,8 +152,8 @@ def plot_gflops(data, sizes):
         
     apply_dark_theme(fig, ax)
     fig.tight_layout()
-    fig.savefig(os.path.join(GRAPH_DIR, "gflops.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
-    fig.savefig(os.path.join(TEST_GRAPH_DIR, "gflops.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(GRAPH_DIR, "gflops_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(TEST_GRAPH_DIR, "gflops_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
 
 def plot_gpu_breakdown(data, sizes):
@@ -186,8 +186,8 @@ def plot_gpu_breakdown(data, sizes):
         
     apply_dark_theme(fig, ax)
     fig.tight_layout()
-    fig.savefig(os.path.join(GRAPH_DIR, "gpu_breakdown.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
-    fig.savefig(os.path.join(TEST_GRAPH_DIR, "gpu_breakdown.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(GRAPH_DIR, "gpu_breakdown_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(TEST_GRAPH_DIR, "gpu_breakdown_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
 
 def main():
