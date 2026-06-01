@@ -1,0 +1,48 @@
+HETEROGENEOUS GEMM SYSTEM WORKFLOW
+==================================
+
+[ Mulai Program Benchmark ]
+             │
+             ▼
+[ Inisialisasi Matriks A & B secara Deterministik ]
+             │
+             ▼
+[ Hitung Sequential CPU Baseline ]
+             │
+             ▼
+[ Evaluasi Mode Eksekusi ]
+             │
+             ├─────────────────────────────────────────┐
+             ▼                                         ▼
+   [ Paralel CPU: OpenMP ]                  [ Akselerasi GPU: OpenCL ]
+             │                                         │
+             ▼                                         ▼
+   [ Warmup Run: 1x OMP ]                   [ Warmup Run: Kompilasi JIT GPU ]
+             │                                         │
+             ▼                                         ▼
+   [ Uji Pengukuran: 3x OMP ]               [ Transfer H2D via PCIe ]
+             │                                         │
+             ▼                                         ▼
+   [ Hitung Rata-rata OMP ]                 [ Eksekusi Tiled Kernel GPU ]
+             │                                         │
+             ▼                                         ▼
+   [ Hitung Selisih Epsilon ]               [ Transfer D2H via PCIe ]
+             │                                         │
+             │                                         ▼
+             │                              [ Uji Pengukuran: 3x GPU ]
+             │                                         │
+             │                                         ▼
+             └─────────────────────────────────────────┤
+                                                       │
+                                                       ▼
+                                         [ Apakah avg_error < Epsilon? ]
+                                                       │
+                                        ┌──────────────┴──────────────┐
+                                     Ya │                             │ Tidak
+                                        ▼                             ▼
+                                 [ Status: VALID ]             [ Status: INVALID ]
+                                        │                             │
+                                        └──────────────┬──────────────┘
+                                                       │
+                                                       ▼
+                                      [ Ekspor Output ke CSV & Selesai ]
