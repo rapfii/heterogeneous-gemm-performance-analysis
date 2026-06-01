@@ -56,14 +56,17 @@ static inline int validate_result(const float *P, const float *S,
                                   int N, int verbose)
 {
     double error = 0.0;
+    double max_error = 0.0;
     for (int i = 0; i < N * N; i++) {
-        error += fabs((double)P[i] - (double)S[i]);
+        double diff = fabs((double)P[i] - (double)S[i]);
+        error += diff;
+        if (diff > max_error) max_error = diff;
     }
     double avg_error = error / ((double)N * N);
 
     if (verbose) {
-        printf("  Validation: total_error=%.6e  avg_error=%.6e  %s\n",
-               error, avg_error,
+        printf("  Validation: total_error=%.6e  avg_error=%.6e  max_error=%.6e  %s\n",
+               error, avg_error, max_error,
                avg_error < EPSILON ? "VALID" : "INVALID");
     }
     return avg_error < EPSILON ? 1 : 0;

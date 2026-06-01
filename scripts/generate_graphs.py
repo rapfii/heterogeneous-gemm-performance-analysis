@@ -12,7 +12,7 @@ DPI = 180
 
 BG_COLOR = "#0B0F19"
 AX_COLOR = "#111827"
-TEXT_COLOR = "#F3F4F6"
+TEXT_COLOR = "white"
 GRID_COLOR = "#1F2937"
 
 COLORS = {"seq": "#F43F5E", "omp": "#10B981", "opencl": "#3B82F6"}
@@ -35,7 +35,16 @@ def load_csv(path):
     data = {}
     with open(path, newline="") as f:
         for row in csv.DictReader(f):
-            data.setdefault(row["mode"], {})[int(row["size"])] = float(row["time"])
+            m = row["mode"]
+            s = int(row["size"])
+            if m not in data: data[m] = {}
+            data[m][s] = {
+                "time": float(row["time"]),
+                "gflops": float(row.get("gflops", 0)),
+                "t_h2d": float(row.get("t_h2d", 0)),
+                "t_kernel": float(row.get("t_kernel", 0)),
+                "t_d2h": float(row.get("t_d2h", 0))
+            }
     return data
 
 def plot_execution_time(data, sizes):
@@ -43,16 +52,20 @@ def plot_execution_time(data, sizes):
     x, w = np.arange(len(sizes)), 0.25
     for i, m in enumerate(["seq", "omp", "opencl"]):
         if m not in data: continue
-        t = [data[m].get(s, 0) for s in sizes]
+        t = [data[m].get(s, {}).get("time", 0) for s in sizes]
         bars = ax.bar(x + i*w, t, w, label=LABELS[m], color=COLORS[m], edgecolor=BG_COLOR, linewidth=1, zorder=3)
         for b, v in zip(bars, t):
             ax.text(b.get_x()+b.get_width()/2, b.get_height() + (v*0.01 if v > 0.1 else 0.002), 
                     f"{v:.4f}s", ha="center", va="bottom", fontsize=8, color=TEXT_COLOR, fontweight="bold")
-    ax.set_xlabel("Matrix Size (N×N)", fontsize=11, fontweight="bold")
-    ax.set_ylabel("Execution Time (seconds)", fontsize=11, fontweight="bold")
-    ax.set_title("GEMM Execution Time Comparison (Lower is Better)", fontsize=13, fontweight="bold", pad=15)
+    ax.set_xlabel("Matrix Size (N×N)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_ylabel("Execution Time (seconds)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_title("GEMM Execution Time Comparison (Lower is Better)", fontsize=13, fontweight="bold", pad=15, color=TEXT_COLOR)
     ax.set_xticks(x+w); ax.set_xticklabels([f"{s}x{s}" for s in sizes])
-    ax.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left")
+    
+    legend = ax.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left")
+    for text in legend.get_texts():
+        text.set_color(TEXT_COLOR)
+        
     apply_dark_theme(fig, ax)
     fig.tight_layout()
     fig.savefig(os.path.join(GRAPH_DIR, "execution_time.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
@@ -63,17 +76,21 @@ def plot_speedup(data, sizes):
     fig, ax = plt.subplots(figsize=(10, 6), facecolor=BG_COLOR)
     for m in ["omp", "opencl"]:
         if m not in data or "seq" not in data: continue
-        sp = [data["seq"].get(s,1)/max(data[m].get(s,1),1e-9) for s in sizes]
+        sp = [data["seq"].get(s, {}).get("time", 1)/max(data[m].get(s, {}).get("time", 1), 1e-9) for s in sizes]
         ax.plot(sizes, sp, marker="o", lw=3, ms=8, label=LABELS[m], color=COLORS[m], zorder=3)
         for s, v in zip(sizes, sp):
             ax.annotate(f"{v:.1f}x", (s, v), textcoords="offset points", xytext=(0,10), 
                         ha="center", fontsize=9, fontweight="bold", color=COLORS[m])
     ax.axhline(y=1, color="#94A3B8", ls="--", lw=1.5, label="CPU Baseline", zorder=2)
-    ax.set_xlabel("Matrix Size (N)", fontsize=11, fontweight="bold")
-    ax.set_ylabel("Speedup factor (vs Sequential)", fontsize=11, fontweight="bold")
-    ax.set_title("Performance Speedup (Higher is Better)", fontsize=13, fontweight="bold", pad=15)
+    ax.set_xlabel("Matrix Size (N)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_ylabel("Speedup factor (vs Sequential)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_title("Performance Speedup (Higher is Better)", fontsize=13, fontweight="bold", pad=15, color=TEXT_COLOR)
     ax.set_xticks(sizes)
-    ax.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left")
+    
+    legend = ax.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left")
+    for text in legend.get_texts():
+        text.set_color(TEXT_COLOR)
+        
     apply_dark_theme(fig, ax)
     fig.tight_layout()
     fig.savefig(os.path.join(GRAPH_DIR, "speedup.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
@@ -85,30 +102,92 @@ def plot_combined(data, sizes):
     
     for m in ["seq","omp","opencl"]:
         if m not in data: continue
-        a1.plot(sizes, [data[m].get(s,0) for s in sizes], marker="s", lw=2.5, ms=6, label=LABELS[m], color=COLORS[m], zorder=3)
+        a1.plot(sizes, [data[m].get(s, {}).get("time", 0) for s in sizes], marker="s", lw=2.5, ms=6, label=LABELS[m], color=COLORS[m], zorder=3)
     a1.set_yscale("log")
-    a1.set_xlabel("Matrix Size (N)", fontsize=11, fontweight="bold")
-    a1.set_ylabel("Time (seconds, log scale)", fontsize=11, fontweight="bold")
-    a1.set_title("Execution Time (Log Scale)", fontsize=12, fontweight="bold")
+    a1.set_xlabel("Matrix Size (N)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    a1.set_ylabel("Time (seconds, log scale)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    a1.set_title("Execution Time (Log Scale)", fontsize=12, fontweight="bold", color=TEXT_COLOR)
     a1.set_xticks(sizes)
-    a1.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="lower left")
+    legend1 = a1.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="lower left")
+    for text in legend1.get_texts(): text.set_color(TEXT_COLOR)
     apply_dark_theme(fig, a1)
     
     for m in ["omp","opencl"]:
         if m not in data or "seq" not in data: continue
-        a2.plot(sizes, [data["seq"].get(s,1)/max(data[m].get(s,1),1e-9) for s in sizes], marker="o", lw=2.5, ms=6, label=LABELS[m], color=COLORS[m], zorder=3)
+        sp = [data["seq"].get(s, {}).get("time", 1)/max(data[m].get(s, {}).get("time", 1), 1e-9) for s in sizes]
+        a2.plot(sizes, sp, marker="o", lw=2.5, ms=6, label=LABELS[m], color=COLORS[m], zorder=3)
     a2.axhline(y=1, color="#94A3B8", ls="--", lw=1.5, label="CPU Baseline", zorder=2)
-    a2.set_xlabel("Matrix Size (N)", fontsize=11, fontweight="bold")
-    a2.set_ylabel("Speedup factor", fontsize=11, fontweight="bold")
-    a2.set_title("Speedup vs CPU Baseline", fontsize=12, fontweight="bold")
+    a2.set_xlabel("Matrix Size (N)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    a2.set_ylabel("Speedup factor", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    a2.set_title("Speedup vs CPU Baseline", fontsize=12, fontweight="bold", color=TEXT_COLOR)
     a2.set_xticks(sizes)
-    a2.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left")
+    legend2 = a2.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left")
+    for text in legend2.get_texts(): text.set_color(TEXT_COLOR)
     apply_dark_theme(fig, a2)
     
     fig.suptitle("Heterogeneous GEMM Performance Analysis (CPU vs GPU)", fontsize=15, fontweight="bold", color=TEXT_COLOR, y=0.98)
     fig.tight_layout()
     fig.savefig(os.path.join(GRAPH_DIR, "combined_overview.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
     fig.savefig(os.path.join(TEST_GRAPH_DIR, "combined_overview.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    plt.close(fig)
+
+def plot_gflops(data, sizes):
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor=BG_COLOR)
+    x, w = np.arange(len(sizes)), 0.25
+    for i, m in enumerate(["seq", "omp", "opencl"]):
+        if m not in data: continue
+        t = [data[m].get(s, {}).get("gflops", 0) for s in sizes]
+        bars = ax.bar(x + i*w, t, w, label=LABELS[m], color=COLORS[m], edgecolor=BG_COLOR, linewidth=1, zorder=3)
+        for b, v in zip(bars, t):
+            ax.text(b.get_x()+b.get_width()/2, b.get_height() + (v*0.01 if v > 1 else 0.1), 
+                    f"{v:.1f}", ha="center", va="bottom", fontsize=8, color=TEXT_COLOR, fontweight="bold")
+    ax.set_xlabel("Matrix Size (N×N)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_ylabel("Performance (GFLOPS)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_title("GEMM Performance - GFLOPS (Higher is Better)", fontsize=13, fontweight="bold", pad=15, color=TEXT_COLOR)
+    ax.set_xticks(x+w); ax.set_xticklabels([f"{s}x{s}" for s in sizes])
+    
+    legend = ax.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left")
+    for text in legend.get_texts():
+        text.set_color(TEXT_COLOR)
+        
+    apply_dark_theme(fig, ax)
+    fig.tight_layout()
+    fig.savefig(os.path.join(GRAPH_DIR, "gflops.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(TEST_GRAPH_DIR, "gflops.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    plt.close(fig)
+
+def plot_gpu_breakdown(data, sizes):
+    if "opencl" not in data: return
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor=BG_COLOR)
+    x = np.arange(len(sizes))
+    w = 0.5
+    
+    h2d = np.array([data["opencl"].get(s, {}).get("t_h2d", 0) for s in sizes])
+    kernel = np.array([data["opencl"].get(s, {}).get("t_kernel", 0) for s in sizes])
+    d2h = np.array([data["opencl"].get(s, {}).get("t_d2h", 0) for s in sizes])
+    
+    ax.bar(x, kernel, w, label="Kernel Execution", color="#3B82F6", edgecolor=BG_COLOR, zorder=3)
+    ax.bar(x, h2d, w, bottom=kernel, label="Host-to-Device (H2D)", color="#F59E0B", edgecolor=BG_COLOR, zorder=3)
+    ax.bar(x, d2h, w, bottom=kernel+h2d, label="Device-to-Host (D2H)", color="#10B981", edgecolor=BG_COLOR, zorder=3)
+    
+    for i in range(len(sizes)):
+        total = h2d[i] + kernel[i] + d2h[i]
+        if total > 0:
+            ax.text(i, total * 1.02, f"{total:.4f}s", ha="center", va="bottom", color=TEXT_COLOR, fontweight="bold", fontsize=9)
+            
+    ax.set_xlabel("Matrix Size (N×N)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_ylabel("Time (seconds)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_title("OpenCL (GPU) Execution Time Breakdown", fontsize=13, fontweight="bold", pad=15, color=TEXT_COLOR)
+    ax.set_xticks(x); ax.set_xticklabels([f"{s}x{s}" for s in sizes])
+    
+    legend = ax.legend(facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left")
+    for text in legend.get_texts():
+        text.set_color(TEXT_COLOR)
+        
+    apply_dark_theme(fig, ax)
+    fig.tight_layout()
+    fig.savefig(os.path.join(GRAPH_DIR, "gpu_breakdown.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(TEST_GRAPH_DIR, "gpu_breakdown.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
 
 def main():
@@ -121,6 +200,8 @@ def main():
     plot_execution_time(data, sizes)
     plot_speedup(data, sizes)
     plot_combined(data, sizes)
+    plot_gflops(data, sizes)
+    plot_gpu_breakdown(data, sizes)
     shutil.copy2(CSV_PATH, "test/execution_time.csv")
 
 if __name__ == "__main__":

@@ -56,7 +56,7 @@ static double benchmark_openmp(const float *A, const float *B,
 
 static double benchmark_opencl(const float *A, const float *B,
                                float *C, int N, const char *kernel_path,
-                               int csv_only)
+                               int csv_only, double *out_h2d, double *out_kernel, double *out_d2h)
 {
     double t_h2d, t_kernel, t_d2h;
 
@@ -92,6 +92,9 @@ static double benchmark_opencl(const float *A, const float *B,
                total_h2d / MEASURE_RUNS,
                total_kern / MEASURE_RUNS,
                total_d2h / MEASURE_RUNS);
+    if (out_h2d) *out_h2d = total_h2d / MEASURE_RUNS;
+    if (out_kernel) *out_kernel = total_kern / MEASURE_RUNS;
+    if (out_d2h) *out_d2h = total_d2h / MEASURE_RUNS;
 
     return total / MEASURE_RUNS;
 }
@@ -173,7 +176,8 @@ int main(int argc, char **argv)
     if (!csv_only) printf("  Average: %.6f s\n\n", t_seq);
 
     if (mode & MODE_SEQ) {
-        printf("seq,%d,%.6f,1\n", N, t_seq);
+        double gflops = (2.0 * (double)N * (double)N * (double)N) / (t_seq * 1e9);
+        printf("seq,%d,%.6f,1,%.6f,0.0,0.0,0.0\n", N, t_seq, gflops);
     }
 
     if (mode & MODE_OMP) {
@@ -181,27 +185,30 @@ int main(int argc, char **argv)
         double t_omp = benchmark_openmp(A, B, C_work, N, threads, csv_only);
         int valid = validate_result(C_work, C_seq, N, !csv_only);
         if (!csv_only) {
-            printf("  Average: %.6f s  Speedup: %.2fx\n\n",
-                   t_omp, t_seq / t_omp);
+            double gflops = (2.0 * (double)N * (double)N * (double)N) / (t_omp * 1e9);
+            printf("  Average: %.6f s  Speedup: %.2fx  GFLOPS: %.2f\n\n",
+                   t_omp, t_seq / t_omp, gflops);
         }
-        printf("omp,%d,%.6f,%d\n", N, t_omp, valid);
+        double gflops = (2.0 * (double)N * (double)N * (double)N) / (t_omp * 1e9);
+        printf("omp,%d,%.6f,%d,%.6f,0.0,0.0,0.0\n", N, t_omp, valid, gflops);
     }
 
     if (mode & MODE_OPENCL) {
         const char *kernel_path = "src/opencl/gemm_kernel.cl";
 
-        if (!csv_only) printf("-- OpenCL (GPU) --\n");
+        double h2d = 0.0, kernel = 0.0, d2h = 0.0;
         double t_ocl = benchmark_opencl(A, B, C_work, N, kernel_path,
-                                        csv_only);
+                                        csv_only, &h2d, &kernel, &d2h);
         if (t_ocl < 0) {
-            printf("opencl,%d,-1,0\n", N);
+            printf("opencl,%d,-1,0,0.0,0.0,0.0,0.0\n", N);
         } else {
             int valid = validate_result(C_work, C_seq, N, !csv_only);
+            double gflops = (2.0 * (double)N * (double)N * (double)N) / (t_ocl * 1e9);
             if (!csv_only) {
-                printf("  Average: %.6f s  Speedup: %.2fx\n\n",
-                       t_ocl, t_seq / t_ocl);
+                printf("  Average: %.6f s  Speedup: %.2fx  GFLOPS: %.2f\n\n",
+                       t_ocl, t_seq / t_ocl, gflops);
             }
-            printf("opencl,%d,%.6f,%d\n", N, t_ocl, valid);
+            printf("opencl,%d,%.6f,%d,%.6f,%.6f,%.6f,%.6f\n", N, t_ocl, valid, gflops, h2d, kernel, d2h);
         }
     }
 
