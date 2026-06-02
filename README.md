@@ -20,9 +20,6 @@
   <img src="https://img.shields.io/badge/Compiler-GCC_14-FFD133?style=flat-square" alt="GCC Compiler">
   <img src="https://img.shields.io/badge/Visualizer-Python_Matplotlib-3776AB?style=flat-square&logo=python" alt="Python Matplotlib">
   <br>
-  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License MIT">
-  <img src="https://img.shields.io/badge/Grade-A%2B-gold?style=flat-square" alt="Grade A+">
-  <img src="https://img.shields.io/badge/Status-Completed-success?style=flat-square" alt="Status Completed">
 </p>
 
 ---
