@@ -52,7 +52,7 @@ Benchmark dijalankan pada sistem dengan spesifikasi sebagai berikut:
 * Matriks `float` (single-precision) berukuran $N \times N$, dengan ukuran $N \in \{256, 512, 1024, 2048\}$.
 * Setiap test didahului oleh **1x *warm-up run*** (tidak dimasukkan dalam perhitungan execution time) untuk mengeliminasi waktu inisialisasi driver dan JIT compilation kernel OpenCL.
 * Metrik execution time dihitung berdasarkan rata-rata dari **3x *measurement runs***.
-* Testing dilakukan dalam kondisi sistem *idle* dengan CPU Governor disetel ke mode **'performance'** guna menjaga konsistensi frekuensi core (menghindari *throttling*).
+* Testing dilakukan dalam kondisi sistem *idle* (background load minimal) dengan CPU Governor disetel ke mode **'performance'** guna menjaga konsistensi frekuensi core (mencegah *frequency throttling*), serta *clock rate* GPU dipastikan stabil/dikunci selama seluruh sesi benchmark berjalan untuk menjamin konsistensi test data.
 * Hasil akhir diekspor secara otomatis ke file CSV dengan format `mode,size,time,valid,gflops,t_h2d,t_kernel,t_d2h`.
 
 ### Protokol Validasi Epsilon & Robustness
