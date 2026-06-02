@@ -208,7 +208,8 @@ int main(int argc, char **argv)
                 printf("  Average: %.6f s  Speedup: %.2fx  GFLOPS: %.2f\n\n",
                        t_ocl, t_seq / t_ocl, gflops);
             }
-            printf("opencl,%d,%.6f,%d,%.6f,%.6f,%.6f,%.6f\n", N, t_ocl, valid, gflops, h2d, kernel, d2h);
+            double gflops_kernel = (2.0 * (double)N * (double)N * (double)N) / (kernel * 1e9);
+            printf("opencl,%d,%.6f,%d,%.6f,%.6f,%.6f,%.6f,%.6f\n", N, t_ocl, valid, gflops, h2d, kernel, d2h, gflops_kernel);
         }
     }
 

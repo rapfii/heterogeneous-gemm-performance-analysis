@@ -190,6 +190,67 @@ def plot_gpu_breakdown(data, sizes):
     fig.savefig(os.path.join(TEST_GRAPH_DIR, "gpu_breakdown_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
 
+def plot_roofline(data, sizes):
+    if "opencl" not in data:
+        return
+
+    PEAK_GFLOPS = 2 * 2560 * 2055e6 / 1e9
+    MEM_BW_GBS = 192.0
+
+    ridge_ai = PEAK_GFLOPS / MEM_BW_GBS
+
+    fig, ax = plt.subplots(figsize=(11, 7), facecolor=BG_COLOR)
+
+    ai_range = np.logspace(-1, 3, 500)
+
+    mem_ceiling = ai_range * MEM_BW_GBS
+    roofline = np.minimum(mem_ceiling, PEAK_GFLOPS)
+
+    ax.plot(ai_range, roofline, lw=3, color="#F43F5E", zorder=3, label=f"Roofline (Peak={PEAK_GFLOPS:.0f} GFLOPS)")
+    ax.axhline(y=PEAK_GFLOPS, color="#F43F5E", ls=":", lw=1, alpha=0.5, zorder=2)
+    ax.axvline(x=ridge_ai, color="#94A3B8", ls="--", lw=1, alpha=0.4, zorder=2)
+    ax.text(ridge_ai * 1.1, PEAK_GFLOPS * 0.7, f"Ridge Point\nAI={ridge_ai:.1f}", fontsize=8, color="#94A3B8", ha="left")
+
+    markers = {"seq": "s", "omp": "D", "opencl": "o"}
+    for m in ["seq", "omp", "opencl"]:
+        if m not in data:
+            continue
+        for s in sizes:
+            if s not in data[m]:
+                continue
+            ai = s / 6.0
+            gflops = data[m][s].get("gflops", 0)
+            if gflops <= 0:
+                continue
+            ax.scatter(ai, gflops, s=100, marker=markers.get(m, "o"),
+                       color=COLORS[m], edgecolors="white", linewidths=0.8,
+                       zorder=5, label=f"{LABELS[m]} N={s}")
+            ax.annotate(f"N={s}\n{gflops:.1f} GF",
+                        (ai, gflops), textcoords="offset points",
+                        xytext=(8, 5), fontsize=7, color=COLORS[m], fontweight="bold")
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Arithmetic Intensity (FLOP/byte)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_ylabel("Performance (GFLOPS)", fontsize=11, fontweight="bold", color=TEXT_COLOR)
+    ax.set_title("Roofline Model — GEMM Performance vs Hardware Ceilings", fontsize=13, fontweight="bold", pad=15, color=TEXT_COLOR)
+    ax.set_xlim(0.5, 1000)
+    ax.set_ylim(0.01, PEAK_GFLOPS * 2)
+
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    legend = ax.legend(by_label.values(), by_label.keys(),
+                       facecolor=AX_COLOR, edgecolor=GRID_COLOR, loc="upper left", fontsize=8)
+    for text in legend.get_texts():
+        text.set_color(TEXT_COLOR)
+
+    apply_dark_theme(fig, ax)
+    fig.tight_layout()
+    fig.savefig(os.path.join(GRAPH_DIR, "roofline_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    fig.savefig(os.path.join(TEST_GRAPH_DIR, "roofline_v2.png"), dpi=DPI, bbox_inches="tight", facecolor=BG_COLOR)
+    plt.close(fig)
+
+
 def main():
     if not os.path.exists(CSV_PATH):
         sys.exit(1)
@@ -202,6 +263,7 @@ def main():
     plot_combined(data, sizes)
     plot_gflops(data, sizes)
     plot_gpu_breakdown(data, sizes)
+    plot_roofline(data, sizes)
     shutil.copy2(CSV_PATH, "test/execution_time.csv")
 
 if __name__ == "__main__":

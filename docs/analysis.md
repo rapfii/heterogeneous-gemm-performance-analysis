@@ -50,10 +50,10 @@ Benchmark dijalankan pada sistem dengan spesifikasi sebagai berikut:
 
 ### Metodologi Benchmark
 * Matriks `float` (single-precision) berukuran $N \times N$, dengan ukuran $N \in \{256, 512, 1024, 2048\}$.
-* Setiap test didahului oleh **1x *warm-up run*** (tidak dimasukkan dalam perhitungan execution time) untuk mengeliminasi waktu inisialisasi driver dan JIT compilation kernel OpenCL.
-* Metrik execution time dihitung berdasarkan rata-rata dari **3x *measurement runs***.
-* Testing dilakukan dalam kondisi sistem *idle* (background load minimal) dengan CPU Governor disetel ke mode **'performance'** guna menjaga konsistensi frekuensi core (mencegah *frequency throttling*), serta *clock rate* GPU dipastikan stabil/dikunci selama seluruh sesi benchmark berjalan untuk menjamin konsistensi test data.
-* Hasil akhir diekspor secara otomatis ke file CSV dengan format `mode,size,time,valid,gflops,t_h2d,t_kernel,t_d2h`.
+* Setiap test didahului oleh **1x *warm-up run*** (tidak dimasukkan dalam perhitungan execution time). Namun, karena bug pengukuran pada implementasi benchmark, fase *warm-up* hanya memicu JIT compilation, sedangkan alokasi buffer dan inisialisasi API OpenCL tetap tereksekusi berulang pada setiap *measurement run*.
+* Metrik execution time dihitung berdasarkan rata-rata dari **3x *measurement runs***. Keterbatasan metodologi saat ini adalah tidak adanya pelaporan *standard deviation* atau metrik varians lainnya untuk mengukur stabilitas eksekusi.
+* Testing dilakukan dalam kondisi sistem *idle* (background load minimal) dengan CPU Governor disetel ke mode **'performance'** guna menjaga konsistensi frekuensi core. Kami tidak secara ekstensif memonitor implikasi *thermal throttling* pada laptop, yang dapat mempengaruhi stabilitas hasil pada beban kerja N=2048 berdurasi panjang (~22 detik).
+* Hasil akhir diekspor secara otomatis ke file CSV dengan format `mode,size,time,valid,gflops,t_h2d,t_kernel,t_d2h,gflops_kernel`.
 
 ### Protokol Validasi Epsilon & Robustness
 Operasi *floating-point* tidak bersifat asosiatif penuh karena adanya *rounding error* pada standard IEEE 754 representation:
@@ -113,7 +113,9 @@ $$\text{GFLOPS} = \frac{\text{FLOPs}}{\text{Waktu (detik)} \times 10^9} = \frac{
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **Sequential (CPU Baseline)** | Waktu (s)<br>Speedup<br>GFLOPS | 0.0076 s<br>1.00x<br>4.43 | 0.0662 s<br>1.00x<br>4.06 | 2.4365 s<br>1.00x<br>0.88 | 22.7890 s<br>1.00x<br>0.75 |
 | **OpenMP (6 Threads CPU)** | Waktu (s)<br>Speedup<br>GFLOPS | 0.0028 s<br>2.72x<br>12.04 | 0.0121 s<br>5.48x<br>22.24 | 0.3925 s<br>6.21x<br>5.47 | 3.1716 s<br>7.19x<br>5.42 |
-| **OpenCL (GPU Tiled)** | Waktu (s)<br>Speedup<br>GFLOPS | 0.0989 s<br>0.08x<br>0.34 | 0.0971 s<br>0.68x<br>2.77 | 0.1082 s<br>22.52x<br>19.85 | 0.1628 s<br>140.01x<br>105.55 |
+| **OpenCL (GPU Tiled)** | Waktu (s)<br>Speedup<br>GFLOPS (Wall-clock) | 0.0989 s<br>0.08x<br>0.34 | 0.0971 s<br>0.68x ⚠️<br>2.77 | 0.1082 s<br>22.52x<br>19.85 | 0.1628 s<br>140.01x<br>105.55 |
+
+> 📐 **Definisi GFLOPS:** Kolom GFLOPS di atas dihitung berdasarkan **wall-clock time** (total waktu eksekusi). Jika ditinjau dari $T_{kernel}$ saja, performa GPU aktual di N=2048 mencapai **~297 GFLOPS**.
 ---
 
 ### 4.2 Pemodelan Kinerja GPU: Kernel Compute vs Overhead Transfer (PCIe)
@@ -124,7 +126,7 @@ Di mana $T_{H2D}$ adalah waktu salin matriks input A dan B dari RAM ke VRAM, $T_
 
 Berikut adalah hasil dekomposisi waktu rata-rata (dalam detik) dan kontribusi persentasenya:
 
-| Ukuran Matriks (N) | Transfer H2D | Execution Kernel ($T_{kernel}$) | Transfer D2H | Launch Overhead & JIT | Total Running Time ($T_{total}$) |
+| Ukuran Matriks (N) | Transfer H2D | Execution Kernel ($T_{kernel}$) | Transfer D2H | API Initialization Overhead | Total Running Time ($T_{total}$) |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | **N = 256** | 0.00016 s (0.16%) | 0.00013 s (0.13%) | 0.00005 s (0.05%) | 0.09852 s (99.66%) | 0.09886 s |
 | **N = 512** | 0.00041 s (0.42%) | 0.00097 s (1.00%) | 0.00016 s (0.17%) | 0.09553 s (98.41%) | 0.09707 s |
@@ -132,15 +134,19 @@ Berikut adalah hasil dekomposisi waktu rata-rata (dalam detik) dan kontribusi pe
 | **N = 2048** | 0.00305 s (1.88%) | 0.05784 s (35.53%) | 0.00139 s (0.85%) | 0.10049 s (61.73%) | 0.16277 s |
 
 **Analisis Overhead:**
-Data di atas membuktikan secara konkrit bahwa pada ukuran matriks kecil ($N \le 512$), rendahnya performa GPU murni disebabkan oleh dominasi **Launch Overhead & JIT** yang mencapai $>98\%$. Waktu pemrosesan aktif ($T_{H2D} + T_{kernel} + T_{D2H}$) sebenarnya sangat kecil (hanya 0.34 ms pada $N=256$). Pada $N=2048$, porsi pengerjaan kernel murni mulai meningkat secara signifikan menjadi $35.53\%$ dari total waktu, memvalidasi efisiensi GPU seiring meningkatnya ukuran masalah.
+Data di atas membuktikan secara konkrit bahwa pada ukuran matriks kecil ($N \le 512$), rendahnya performa GPU murni disebabkan oleh dominasi **API Initialization Overhead** yang bernilai konstan (~0.095–0.100s) di setiap *run*. Karena *bug* pemrograman, overhead ini terhitung berulang. Meski begitu, pada N=2048 porsi pengerjaan kernel murni mulai meningkat menjadi $35.53\%$ dari total waktu, membuktikan utilitas komputasi aktual GPU.
 
 ---
 
 ### 4.3 Analisis CPU (OpenMP) & Dampak Memory Layout
 
-* **Scheduling Characteristics & Thread Binding:** Memanfaatkan pragma `#pragma omp parallel for collapse(2) schedule(static)` untuk mendistribusikan iterasi loop luar dan loop tengah ke *thread pool*. Penggunaan `collapse(2)` meningkatkan derajat paralelisasi secara signifikan namun berpotensi menurunkan locality cache karena traversal matriks tidak lagi row-major optimal. Hal ini memicu bottleneck memori saat dihadapkan pada dimensi yang lebih besar.
+* **Scheduling Characteristics & Thread Binding:** Memanfaatkan pragma `#pragma omp parallel for collapse(2) schedule(static)` untuk mendistribusikan iterasi loop luar dan loop tengah ke *thread pool*. Penggunaan `collapse(2)` sangat agresif dalam memparalelkan *workload*, namun memaksa *thread* mengakses elemen matriks `B[k][j]` secara lebih tidak berurutan (*non-sequential*). Berbeda dengan paralelisasi tunggal hanya pada *loop* terluar, `collapse(2)` memicu *stride jump* besar yang merusak *spatial locality* L1/L2 cache, menyebabkan *drop* performa OpenMP drastis dari 22.24 GFLOPS (N=512) menjadi 5.47 GFLOPS (N=1024).
 * **Optimasi Hardware-Aware:** Hambatan utama pada CPU hybrid adalah *cache contention* dan kompetisi akses memori. Hal ini diatasi dengan membatasi running program secara ketat hanya pada **6 threads** yang diikat (*pinned*) pada Performance Cores (P-Cores) fisik CPU melalui environment variable `OMP_PLACES=cores` dan `OMP_PROC_BIND=close`. Langkah ini meminimalkan latensi migrasi *thread* antar-core hybrid (*Intel Thread Director overhead*) serta menghindari penempatan workload di Efficiency Cores (E-Cores) yang berlatensi memori lebih tinggi.
-* **Memory Layout & Spatial Locality:** Storage matriks menggunakan **row-major** representation. Pada loop CPU sequential, indeks baris dialiri secara linier pada matriks A (`A[i][k]`), menghasilkan *spatial locality* yang sangat baik pada L1/L2 cache. Namun, pengaksesan kolom pada matriks B (`B[k][j]`) dilakukan secara melompat (stride-N). Seiring bertambahnya ukuran matriks ($N \ge 1024$), lonjakan stride memicu *cache capacity thrashing* (miss rate tinggi) yang mengakibatkan penurunan drastis GFLOPS baseline CPU dari **4.06 GFLOPS** (pada $N=512$) menjadi hanya **0.75 GFLOPS** (pada $N=2048$).
+* **Memory Layout, Spatial Locality, & Working Set:** Seiring bertambahnya ukuran matriks ($N \ge 1024$), *stride jump* pada matriks B memicu *cache capacity thrashing* parah. Hal ini divalidasi dari kalkulasi ukuran *working set* matriks terhadap memori CPU (Intel i5-14450HX memiliki L3 cache 20 MB):
+  * **N=256:** Kebutuhan memori $3 \times 256^2 \times 4$ bytes = **0.75 MB** (Muat penuh di L2 cache) → Performa tinggi (4.43 GFLOPS).
+  * **N=512:** Kebutuhan memori $3 \times 512^2 \times 4$ bytes = **3.0 MB** (Muat mulus di L3 cache) → Performa stabil (4.06 GFLOPS).
+  * **N=1024:** Kebutuhan memori $3 \times 1024^2 \times 4$ bytes = **12.0 MB** (Mulai mendekati batas utilisasi L3 efektif bersama instruksi lain) → Performa hancur (**0.88 GFLOPS**).
+  * **N=2048:** Kebutuhan memori $3 \times 2048^2 \times 4$ bytes = **48.0 MB** (Jauh melewati limit L3 cache) → Terjadi *RAM spill-over*, melumpuhkan komputasi CPU (**0.75 GFLOPS**).
 
 ---
 
@@ -159,27 +165,29 @@ Data di atas membuktikan secara konkrit bahwa pada ukuran matriks kecil ($N \le 
 
 ### 4.5 Kesesuaian Konseptual dengan Roofline Model
 
-Analisis performa sistem heterogen ini **konsisten secara konseptual dengan prinsip Roofline Model**:
-* **Memory-bound Region ($N \le 512$):** Pada ukuran matriks kecil, Intensitas Aritmatika sistem relatif rendah (misalnya hanya 42.6 FLOP/byte pada $N=256$). Performa dibatasi sepenuhnya oleh bandwidth transfer data PCIe dan memori utama. Upaya peningkatan daya komputasi tidak akan menaikkan performa karena terbentur *memory wall*.
-* **Compute-bound Region ($N \ge 1024$):** Pada ukuran besar, Intensitas Aritmatika meningkat tajam (mencapai 341.3 FLOP/byte pada $N=2048$). Sistem melintasi titik belok (*knee point*) Roofline Model ke dalam wilayah komputasi murni. GPU NVIDIA RTX 4050 berhasil memanfaatkan ribuan *compute cores* secara optimal, melesatkan throughput hingga **105.55 GFLOPS** murni.
+Analisis performa sistem heterogen ini tidak sekadar konseptual, tetapi divalidasi dengan plot **Roofline Model aktual** (lihat grafik pada `README.md`). Parameter hardware teoritis RTX 4050 dikalkulasi pada kondisi clock stabil 2055 MHz (Peak Compute: ~10.5 TFLOPS, Mem BW: 192 GB/s):
+* **Memory-bound Region ($N \le 512$):** Pada ukuran matriks kecil, Intensitas Aritmatika sistem relatif rendah (misalnya hanya 42.6 FLOP/byte pada $N=256$). Seluruh titik data, terutama OpenCL, terletak jauh di bawah limitasi karena overhead konstan API (wall-clock loss).
+* **Compute-bound Region ($N \ge 1024$):** Pada ukuran besar, Intensitas Aritmatika meningkat tajam (mencapai 341.3 FLOP/byte pada $N=2048$). Sistem melintasi titik belok (*knee point*) Roofline Model ke dalam wilayah komputasi murni. Kendati mencapai 105.55 GFLOPS wall-clock (dan ~297 GFLOPS *kernel only*), jarak vertikal yang masif dari batas *roofline* ~10.5 TFLOPS mengindikasikan absennya pemanfaatan arsitektur tingkat rendah seperti Tensor Cores atau Register Tiling pada kode murni OpenCL kami.
 
 ---
 
 ## 5. Kesimpulan Akademik
 
-1. **Crossover Point Performa:** Keunggulan akselerasi GPU (OpenCL) baru tercapai ketika ukuran matriks ($N$) cukup besar untuk menutupi *overhead* transfer PCIe. Pada matriks kecil, paralel CPU (OpenMP) adalah pilihan terbaik karena *overhead* transfer memori bernilai nol.
+1. **Crossover Point Performa:** Keunggulan akselerasi GPU (OpenCL) **tidak** terjadi di N=512 (GPU masih kalah 47% dari CPU). GPU baru menang telak di N=1024. Sehingga, titik impas (*crossover point*) yang sesungguhnya diestimasi berada di rentang $N \approx 600 - 800$.
 2. **Kesesuaian Validasi:** Selisih hasil komputasi rata-rata ($E_{avg} < 10^{-4}$) dan nilai selisih maksimum ($E_{max}$) yang terkendali mengonfirmasi keakuratan komputasi heterogen di seluruh implementasi paralel, menunjukkan *robust validation* pada arsitektur GPU dengan instruksi FMA.
-3. **Penyebab Celah Efisiensi GPU:** Efisiensi aktual GPU pada $N=2048$ masih sebesar ~1.17% dari daya komputasi teoritis (105.55 GFLOPS vs 9,000 GFLOPS teoritis). Celah ini disebabkan oleh batasan bandwidth fisik memori saat menyalin data matriks, tidak digunakannya instruksi optimasi level-rendah khusus vendor (seperti register tiling atau Tensor Cores), serta penguncian manual frekuensi clock GPU pada 2055 MHz (di bawah batas boost dinamis maksimumnya 3105 MHz) demi menjaga stabilitas dan reproduksibilitas pengujian.
+3. **Penyebab Celah Efisiensi GPU:** Efisiensi aktual GPU pada $N=2048$ masih sebesar ~1.00% dari daya komputasi teoritis (105.55 GFLOPS vs ~10,522 GFLOPS teoritis di 2055 MHz). Celah vertikal di model Roofline menegaskan bahwa kernel generik kekurangan instruksi optimasi level-rendah khusus vendor (seperti register tiling atau Tensor Cores).
 
 ---
 
 ## 6. Batasan Sistem dan Pengembangan Lanjutan
 
-Meskipun sistem benchmark ini memberikan analisis performa yang komprehensif, terdapat beberapa batasan teknis yang dapat dikembangkan lebih lanjut:
-1. **Dynamic Block Scheduling (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi 16 × 16. Pengembangan lanjutan dapat menerapkan pencarian dinamis untuk mengetes *work-group size* terbaik secara *runtime*.
-2. **Ketiadaan API Proprietary (CUDA):** GPU testing didasarkan pada OpenCL 3.0, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA atau CUBLAS.
-3. **Optimasi Vektor CPU (Explicit SIMD):** Paralelisasi CPU mengandalkan *auto-vectorization* compiler dan pragma OpenMP, belum menggunakan *SIMD intrinsics* secara eksplisit (seperti AVX2/AVX-512).
-4. **Pembatasan Frekuensi Kerja GPU (Locked Clock Rate Limit):** GPU dikunci secara manual pada frekuensi 2055 MHz demi stabilitas dan konsistensi data uji. Hal ini membatasi GPU untuk beroperasi pada frekuensi boost dinamis teoritis maksimumnya (hingga 3105 MHz), sehingga persentase efisiensi riil terhadap kapasitas komputasi puncak teoritis tampak rendah (~1.17%).
+Terdapat celah signifikan pada rancangan benchmark yang merusak kesempurnaan kredibilitas ilmiah proyek ini:
+1. **Bug Metodologi Pengukuran Overhead:** Inisialisasi API OpenCL tetap dilakukan berulang pada setiap ukuran pengukuran yang berdampak masif (delay statis ~0.1 detik). Waktu komputasi murni ($T_{kernel}$) sejatinya sangat pesat, tetapi data wall-clock kami menutupi fakta tersebut.
+2. **Ketiadaan Data Varians dan Transisi:** Hanya rata-rata pengukuran yang disajikan (tanpa *Standard Deviation*) dan distribusi data logaritmik (256, 512, 1024, 2048) membuat *crossover point* hanya spekulatif. Dibutuhkan titik tambahan seperti N=768.
+3. **Ketiadaan Pembanding BLAS CPU Teroptimasi:** Kesimpulan "GPU lebih kencang" bersifat parsial karena kami membandingkannya dengan *naive* OpenMP, tanpa membandingkannya dengan utilitas BLAS tingkat 3 CPU terspesialisasi penuh (seperti OpenBLAS/Intel MKL yang menggunakan instruksi AVX-512).
+4. **Thermal Throttling Tidak Dilaporkan:** Tidak ada telemetri suhu CPU dan GPU yang dilampirkan, padahal beban *sequential* panjang berpotensi besar memicu *thermal throttling* sistem pendingin laptop.
+5. **Ketiadaan API Proprietary (CUDA):** GPU testing didasarkan pada OpenCL 3.0, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA atau CUBLAS.
+6. **Pembatasan Frekuensi Kerja GPU (Locked Clock Rate Limit):** GPU dikunci secara manual pada frekuensi 2055 MHz demi stabilitas, membatasinya dari boost dinamis maksimumnya (hingga 3105 MHz).
 
 ---
 <p align="center">
