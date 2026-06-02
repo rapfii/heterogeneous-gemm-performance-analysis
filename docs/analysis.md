@@ -114,13 +114,6 @@ $$\text{GFLOPS} = \frac{\text{FLOPs}}{\text{Waktu (detik)} \times 10^9} = \frac{
 | **Sequential (CPU Baseline)** | Waktu (s)<br>Speedup<br>GFLOPS | 0.0076 s<br>1.00x<br>4.43 | 0.0662 s<br>1.00x<br>4.06 | 2.4365 s<br>1.00x<br>0.88 | 22.7890 s<br>1.00x<br>0.75 |
 | **OpenMP (6 Threads CPU)** | Waktu (s)<br>Speedup<br>GFLOPS | 0.0028 s<br>2.72x<br>12.04 | 0.0121 s<br>5.48x<br>22.24 | 0.3925 s<br>6.21x<br>5.47 | 3.1716 s<br>7.19x<br>5.42 |
 | **OpenCL (GPU Tiled)** | Waktu (s)<br>Speedup<br>GFLOPS | 0.0989 s<br>0.08x<br>0.34 | 0.0971 s<br>0.68x<br>2.77 | 0.1082 s<br>22.52x<br>19.85 | 0.1628 s<br>140.01x<br>105.55 |
-
-> 📝 **Catatan Metodologi & Kalibrasi Retest (Stable vs Dynamic Clocks):**
-> Terdapat sedikit perbedaan hasil metrik performa (misalnya *speedup* GPU maksimum di $N=2048$ menjadi **~140x** dari sebelumnya **~157x**, serta throughput GPU menjadi **105.55 GFLOPS** dari sebelumnya **113.26 GFLOPS**). Hal ini disebabkan oleh penerapan protokol pengukuran yang terkontrol ketat (*methodological guardrails*) pada pengujian terbaru:
-> 1. **Penguncian Clock GPU (2055 MHz):** Sebelumnya, GPU memanfaatkan *dynamic boost* (mencapai clock dinamis di atas 2500 MHz pada durasi uji pendek). Pada pengujian ulang ini, frekuensi clock GPU dikunci secara manual di **2055 MHz** untuk menghindari pengaruh fluktuasi suhu dan TDP (*thermal/frequency throttling*).
-> 2. **Penyetelan CPU Governor ('performance'):** Sebelumnya, CPU running dengan governor bawaan (`powersave`) yang dinamis dan lambat merespons beban mendadak (memakan waktu baseline **23.79 s**). Dengan governor `performance`, CPU core beroperasi pada kecepatan tinggi sejak awal running, memotong waktu baseline sequential menjadi **22.78 s**.
-> 3. **Dampak pada Rasio Speedup:** Karena nilai *Speedup* dihitung sebagai $\text{Speedup} = T_{\text{CPU Baseline}} / T_{\text{GPU}}$, akselerasi baseline CPU (pengecilan pembilang) dan pembatasan clock stabil GPU (pembesaran penyebut) menyebabkan rasio *speedup* GPU di $N=2048$ secara matematis bergeser ke angka **140.01x**. Hasil uji terbaru ini merepresentasikan hasil ilmiah yang lebih reliabel dan dapat direplikasi secara presisi (*highly reproducible*).
-
 ---
 
 ### 4.2 Pemodelan Kinerja GPU: Kernel Compute vs Overhead Transfer (PCIe)
@@ -186,6 +179,7 @@ Meskipun sistem benchmark ini memberikan analisis performa yang komprehensif, te
 1. **Dynamic Block Scheduling (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi 16 × 16. Pengembangan lanjutan dapat menerapkan pencarian dinamis untuk mengetes *work-group size* terbaik secara *runtime*.
 2. **Ketiadaan API Proprietary (CUDA):** GPU testing didasarkan pada OpenCL 3.0, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA atau CUBLAS.
 3. **Optimasi Vektor CPU (Explicit SIMD):** Paralelisasi CPU mengandalkan *auto-vectorization* compiler dan pragma OpenMP, belum menggunakan *SIMD intrinsics* secara eksplisit (seperti AVX2/AVX-512).
+4. **Pembatasan Frekuensi Kerja GPU (Locked Clock Rate Limit):** GPU dikunci secara manual pada frekuensi 2055 MHz demi stabilitas dan konsistensi data uji. Hal ini membatasi GPU untuk beroperasi pada frekuensi boost dinamis teoritis maksimumnya (hingga 3105 MHz), sehingga persentase efisiensi riil terhadap kapasitas komputasi puncak teoritis tampak rendah (~1.17%).
 
 ---
 <p align="center">
