@@ -12,7 +12,7 @@ fi
 
 mkdir -p results/graphs test/graphs
 
-echo "mode,size,time,valid,gflops,t_h2d,t_kernel,t_d2h,gflops_kernel" > "$CSV_FILE"
+echo "mode,size,time,time_sd,valid,gflops,t_h2d,t_kernel,t_d2h,gflops_kernel" > "$CSV_FILE"
 
 for N in "${SIZES[@]}"; do
     $RUNNER --mode all --size "$N" --threads "$OMP_THREADS" --csv >> "$CSV_FILE"

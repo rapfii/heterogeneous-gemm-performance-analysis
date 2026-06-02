@@ -112,20 +112,20 @@ Untuk menjamin tingkat akurasi dan replikasi actual test results, seluruh test d
 
 Berikut adalah data actual test results yang tercatat pada sistem kami (diambil dari rata-rata 3x running execution setelah 1x *warmup*):
 
-| Ukuran Matriks (N) | Metode Execution | Waktu Rata-rata (s) | Speedup (vs Baseline) | GFLOPS (Wall-clock) | Validitas Numerik |
+| Ukuran Matriks (N) | Metode Execution | Waktu Rata-rata (s) ± SD | Speedup (vs Baseline) | GFLOPS (Wall-clock) | Validitas Numerik |
 | :---: | :--- | :---: | :---: | :---: | :---: |
-| **N = 256** | Sequential (CPU Baseline) | 0.0076 s | 1.00x *(Reference)* | 4.43 | *Reference* |
-| | OpenMP (6 Threads P-Core) | 0.0028 s | 2.72x | 12.04 | ✅ **VALID** |
-| | OpenCL (GPU Tiled) | 0.0989 s | 0.08x | 0.34 | ✅ **VALID** |
-| **N = 512** | Sequential (CPU Baseline) | 0.0662 s | 1.00x *(Reference)* | 4.06 | *Reference* |
-| | OpenMP (6 Threads P-Core) | 0.0121 s | 5.48x | 22.24 | ✅ **VALID** |
-| | OpenCL (GPU Tiled) | 0.0971 s | **0.68x** ⚠️ | 2.77 | ✅ **VALID** |
-| **N = 1024** | Sequential (CPU Baseline) | 2.4365 s | 1.00x *(Reference)* | 0.88 | *Reference* |
-| | OpenMP (6 Threads P-Core) | 0.3925 s | 6.21x | 5.47 | ✅ **VALID** |
-| | OpenCL (GPU Tiled) | 0.1082 s | 22.52x | 19.85 | ✅ **VALID** |
-| **N = 2048** | Sequential (CPU Baseline) | 22.7890 s | 1.00x *(Reference)* | 0.75 | *Reference* |
-| | OpenMP (6 Threads P-Core) | 3.1716 s | 7.19x | 5.42 | ✅ **VALID** |
-| | OpenCL (GPU Tiled) | 0.1628 s | 140.01x | 105.55 | ✅ **VALID** |
+| **N = 256** | Sequential (CPU Baseline) | 0.0089 ±0.0010 s | 1.00x *(Reference)* | 3.79 | *Reference* |
+| | OpenMP (6 Threads P-Core) | 0.0025 ±0.0005 s | 3.56x | 13.22 | ✅ **VALID** |
+| | OpenCL (GPU Tiled) | 0.0905 ±0.0049 s | 0.10x | 0.37 | ✅ **VALID** |
+| **N = 512** | Sequential (CPU Baseline) | 0.0654 ±0.0009 s | 1.00x *(Reference)* | 4.10 | *Reference* |
+| | OpenMP (6 Threads P-Core) | 0.0115 ±0.0001 s | 5.69x | 23.33 | ✅ **VALID** |
+| | OpenCL (GPU Tiled) | 0.0902 ±0.0084 s | **0.73x** ⚠️ | 2.97 | ✅ **VALID** |
+| **N = 1024** | Sequential (CPU Baseline) | 2.4411 ±0.0066 s | 1.00x *(Reference)* | 0.88 | *Reference* |
+| | OpenMP (6 Threads P-Core) | 0.3959 ±0.0021 s | 6.17x | 5.42 | ✅ **VALID** |
+| | OpenCL (GPU Tiled) | 0.1084 ±0.0067 s | 22.52x | 19.82 | ✅ **VALID** |
+| **N = 2048** | Sequential (CPU Baseline) | 21.3689 ±0.0060 s | 1.00x *(Reference)* | 0.80 | *Reference* |
+| | OpenMP (6 Threads P-Core) | 3.1148 ±0.0276 s | 6.86x | 5.52 | ✅ **VALID** |
+| | OpenCL (GPU Tiled) | 0.1470 ±0.0092 s | 145.34x | 116.85 | ✅ **VALID** |
 
 > 📐 **Definisi GFLOPS:** Kolom GFLOPS di atas dihitung berdasarkan **wall-clock time** (total waktu dari awal hingga akhir, termasuk overhead inisialisasi API OpenCL). Rumus: `GFLOPS = (2 × N³) / (T_total × 10⁹)`. Untuk GPU, GFLOPS berbasis waktu kernel murni ($T_{kernel}$) secara signifikan lebih tinggi — lihat [Laporan Analisis Lengkap](docs/analysis.md) §4.2 untuk breakdown.
 
@@ -309,12 +309,11 @@ heterogeneous-gemm/
 Meskipun sistem benchmark ini memberikan analisis performa heterogen yang komprehensif, terdapat beberapa keterbatasan teknis yang dapat dikembangkan lebih lanjut:
 1. **Re-inisialisasi API OpenCL per Invokasi:** Implementasi saat ini melakukan inisialisasi penuh OpenCL stack (platform, context, program build, buffer allocation) di setiap pemanggilan `gemm_opencl()`. Overhead tetap ~0.095–0.100s ini tidak mencerminkan skenario deployment produksi di mana inisialisasi dilakukan sekali. Pengembangan lanjutan sebaiknya memisahkan fase *init* dari fase *compute* dalam loop pengukuran.
 2. **Jumlah Titik Data Terbatas:** Benchmark hanya menguji N ∈ {256, 512, 1024, 2048}. Diperlukan titik tambahan (N ∈ {384, 640, 768, 896}) di zona transisi untuk menentukan crossover point yang presisi.
-3. **Tidak Ada Pelaporan Standar Deviasi:** Meskipun setiap pengukuran dirata-ratakan dari 3 runs, standar deviasi dan min/max tidak dilaporkan, sehingga stabilitas pengukuran tidak dapat diverifikasi secara statistik.
-4. **Penjadwalan Blok Dinamis (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi 16 × 16. Implementasi tingkat lanjut dapat memanfaatkan mekanisme pencarian adaptif untuk mengetes Work-Group Size terbaik berdasarkan karakteristik hardware runtime.
-5. **Ketiadaan Perbandingan BLAS Teroptimasi:** GPU testing belum dibandingkan dengan OpenBLAS/MKL (CPU teroptimasi) atau NVIDIA cuBLAS (GPU teroptimasi). OpenBLAS pada i5-14450HX berpotensi mencapai 50–100+ GFLOPS melalui AVX-512 dan BLAS level-3 optimization.
-6. **Optimasi Vektor CPU (Explicit SIMD):** Bagian paralelisasi CPU saat ini sepenuhnya mengandalkan optimasi compiler otomatis dan pragma OpenMP, tanpa pemanfaatan instruksi vektor hardware secara eksplisit (seperti AVX2/AVX-512).
-7. **Thermal Throttling Tidak Dimonitor:** Suhu CPU/GPU selama benchmark tidak dilaporkan. Benchmark sequential N=2048 memakan ~22.8 detik, cukup untuk menyebabkan thermal throttling pada laptop GPU (TGP 96W). Stabilitas clock rate GPU selama keseluruhan sesi tidak diverifikasi secara independen.
-8. **Pembatasan Frekuensi Kerja GPU (Locked Clock Rate Limit):** GPU dikunci secara manual pada frekuensi 2055 MHz demi stabilitas dan konsistensi data uji. Hal ini membatasi GPU untuk beroperasi pada frekuensi boost dinamis teoritis maksimumnya (hingga 3105 MHz), sehingga persentase efisiensi riil terhadap kapasitas komputasi puncak teoritis tampak rendah (~1.00%).
+3. **Penjadwalan Blok Dinamis (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi 16 × 16. Implementasi tingkat lanjut dapat memanfaatkan mekanisme pencarian adaptif untuk mengetes Work-Group Size terbaik berdasarkan karakteristik hardware runtime.
+4. **Ketiadaan Perbandingan BLAS Teroptimasi:** GPU testing belum dibandingkan dengan OpenBLAS/MKL (CPU teroptimasi) atau NVIDIA cuBLAS (GPU teroptimasi). OpenBLAS pada i5-14450HX berpotensi mencapai 50–100+ GFLOPS melalui AVX-512 dan BLAS level-3 optimization.
+5. **Optimasi Vektor CPU (Explicit SIMD):** Bagian paralelisasi CPU saat ini sepenuhnya mengandalkan optimasi compiler otomatis dan pragma OpenMP, tanpa pemanfaatan instruksi vektor hardware secara eksplisit (seperti AVX2/AVX-512).
+6. **Thermal Throttling Tidak Dimonitor:** Suhu CPU/GPU selama benchmark tidak dilaporkan. Benchmark sequential N=2048 memakan ~22.8 detik, cukup untuk menyebabkan thermal throttling pada laptop GPU (TGP 96W). Stabilitas clock rate GPU selama keseluruhan sesi tidak diverifikasi secara independen.
+7. **Pembatasan Frekuensi Kerja GPU (Locked Clock Rate Limit):** GPU dikunci secara manual pada frekuensi 2055 MHz demi stabilitas dan konsistensi data uji. Hal ini membatasi GPU untuk beroperasi pada frekuensi boost dinamis teoritis maksimumnya (hingga 3105 MHz), sehingga persentase efisiensi riil terhadap kapasitas komputasi puncak teoritis tampak rendah (~1.00%).
 
 ---
 

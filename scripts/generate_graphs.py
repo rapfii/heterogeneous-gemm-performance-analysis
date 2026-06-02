@@ -40,6 +40,7 @@ def load_csv(path):
             if m not in data: data[m] = {}
             data[m][s] = {
                 "time": float(row["time"]),
+                "time_sd": float(row.get("time_sd", 0)),
                 "gflops": float(row.get("gflops", 0)),
                 "t_h2d": float(row.get("t_h2d", 0)),
                 "t_kernel": float(row.get("t_kernel", 0)),
@@ -53,7 +54,8 @@ def plot_execution_time(data, sizes):
     for i, m in enumerate(["seq", "omp", "opencl"]):
         if m not in data: continue
         t = [data[m].get(s, {}).get("time", 0) for s in sizes]
-        bars = ax.bar(x + i*w, t, w, label=LABELS[m], color=COLORS[m], edgecolor=BG_COLOR, linewidth=1, zorder=3)
+        sd = [data[m].get(s, {}).get("time_sd", 0) for s in sizes]
+        bars = ax.bar(x + i*w, t, w, yerr=sd, capsize=3, ecolor='white', label=LABELS[m], color=COLORS[m], edgecolor=BG_COLOR, linewidth=1, zorder=3)
         for b, v in zip(bars, t):
             ax.text(b.get_x()+b.get_width()/2, b.get_height() + (v*0.01 if v > 0.1 else 0.002), 
                     f"{v:.4f}s", ha="center", va="bottom", fontsize=8, color=TEXT_COLOR, fontweight="bold")

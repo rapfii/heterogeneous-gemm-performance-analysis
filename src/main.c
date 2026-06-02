@@ -1,5 +1,6 @@
 #include "gemm_common.h"
 #include <string.h>
+#include <math.h>
 
 enum Mode { MODE_SEQ = 1, MODE_OMP = 2, MODE_OPENCL = 4, MODE_ALL = 7 };
 
@@ -16,47 +17,67 @@ static void print_usage(const char *prog)
         "  --help, -h     Show this help\n", prog);
 }
 
+static double calc_sd(double *times, int count, double avg) {
+    if (count <= 1) return 0.0;
+    double variance = 0.0;
+    for (int i = 0; i < count; i++) {
+        double diff = times[i] - avg;
+        variance += diff * diff;
+    }
+    return sqrt(variance / (count - 1));
+}
+
 static double benchmark_sequential(const float *A, const float *B,
-                                   float *C, int N, int csv_only)
+                                   float *C, int N, int csv_only, double *out_sd)
 {
     if (!csv_only) printf("[SEQ] Warmup...\n");
     matrix_zero(C, N);
     gemm_sequential(A, B, C, N);
 
     double total = 0.0;
+    double times[MEASURE_RUNS];
     for (int r = 0; r < MEASURE_RUNS; r++) {
         matrix_zero(C, N);
         double t0 = get_time();
         gemm_sequential(A, B, C, N);
         double t1 = get_time();
-        total += (t1 - t0);
-        if (!csv_only) printf("  Run %d: %.6f s\n", r + 1, t1 - t0);
+        double wall = t1 - t0;
+        times[r] = wall;
+        total += wall;
+        if (!csv_only) printf("  Run %d: %.6f s\n", r + 1, wall);
     }
-    return total / MEASURE_RUNS;
+    double avg = total / MEASURE_RUNS;
+    if (out_sd) *out_sd = calc_sd(times, MEASURE_RUNS, avg);
+    return avg;
 }
 
 static double benchmark_openmp(const float *A, const float *B,
-                               float *C, int N, int threads, int csv_only)
+                               float *C, int N, int threads, int csv_only, double *out_sd)
 {
     if (!csv_only) printf("[OMP] Warmup (threads=%d)...\n", threads);
     matrix_zero(C, N);
     gemm_openmp(A, B, C, N, threads);
 
     double total = 0.0;
+    double times[MEASURE_RUNS];
     for (int r = 0; r < MEASURE_RUNS; r++) {
         matrix_zero(C, N);
         double t0 = get_time();
         gemm_openmp(A, B, C, N, threads);
         double t1 = get_time();
-        total += (t1 - t0);
-        if (!csv_only) printf("  Run %d: %.6f s\n", r + 1, t1 - t0);
+        double wall = t1 - t0;
+        times[r] = wall;
+        total += wall;
+        if (!csv_only) printf("  Run %d: %.6f s\n", r + 1, wall);
     }
-    return total / MEASURE_RUNS;
+    double avg = total / MEASURE_RUNS;
+    if (out_sd) *out_sd = calc_sd(times, MEASURE_RUNS, avg);
+    return avg;
 }
 
 static double benchmark_opencl(const float *A, const float *B,
                                float *C, int N, const char *kernel_path,
-                               int csv_only, double *out_h2d, double *out_kernel, double *out_d2h)
+                               int csv_only, double *out_sd, double *out_h2d, double *out_kernel, double *out_d2h)
 {
     double t_h2d, t_kernel, t_d2h;
 
@@ -69,6 +90,7 @@ static double benchmark_opencl(const float *A, const float *B,
 
     double total = 0.0;
     double total_h2d = 0.0, total_kern = 0.0, total_d2h = 0.0;
+    double times[MEASURE_RUNS];
     for (int r = 0; r < MEASURE_RUNS; r++) {
         matrix_zero(C, N);
         double t0 = get_time();
@@ -79,6 +101,7 @@ static double benchmark_opencl(const float *A, const float *B,
         }
         double t1 = get_time();
         double wall = t1 - t0;
+        times[r] = wall;
         total += wall;
         total_h2d  += t_h2d;
         total_kern += t_kernel;
@@ -87,6 +110,8 @@ static double benchmark_opencl(const float *A, const float *B,
             printf("  Run %d: %.6f s  (H2D=%.6f  Kernel=%.6f  D2H=%.6f)\n",
                    r + 1, wall, t_h2d, t_kernel, t_d2h);
     }
+    double avg = total / MEASURE_RUNS;
+    if (out_sd) *out_sd = calc_sd(times, MEASURE_RUNS, avg);
     if (!csv_only)
         printf("  Avg breakdown: H2D=%.6f  Kernel=%.6f  D2H=%.6f\n",
                total_h2d / MEASURE_RUNS,
@@ -96,7 +121,7 @@ static double benchmark_opencl(const float *A, const float *B,
     if (out_kernel) *out_kernel = total_kern / MEASURE_RUNS;
     if (out_d2h) *out_d2h = total_d2h / MEASURE_RUNS;
 
-    return total / MEASURE_RUNS;
+    return avg;
 }
 
 int main(int argc, char **argv)
@@ -171,45 +196,47 @@ int main(int argc, char **argv)
                "===================================================\n\n", N);
 
     double t_seq = 0.0;
+    double sd_seq = 0.0;
     if (!csv_only) printf("-- Sequential (baseline) --\n");
-    t_seq = benchmark_sequential(A, B, C_seq, N, csv_only);
-    if (!csv_only) printf("  Average: %.6f s\n\n", t_seq);
+    t_seq = benchmark_sequential(A, B, C_seq, N, csv_only, &sd_seq);
+    if (!csv_only) printf("  Average: %.6f s (SD: %.6f s)\n\n", t_seq, sd_seq);
 
     if (mode & MODE_SEQ) {
         double gflops = (2.0 * (double)N * (double)N * (double)N) / (t_seq * 1e9);
-        printf("seq,%d,%.6f,1,%.6f,0.0,0.0,0.0\n", N, t_seq, gflops);
+        printf("seq,%d,%.6f,%.6f,1,%.6f,0.0,0.0,0.0,0.0\n", N, t_seq, sd_seq, gflops);
     }
 
     if (mode & MODE_OMP) {
         if (!csv_only) printf("-- OpenMP (threads=%d) --\n", threads);
-        double t_omp = benchmark_openmp(A, B, C_work, N, threads, csv_only);
+        double sd_omp = 0.0;
+        double t_omp = benchmark_openmp(A, B, C_work, N, threads, csv_only, &sd_omp);
         int valid = validate_result(C_work, C_seq, N, !csv_only);
         if (!csv_only) {
             double gflops = (2.0 * (double)N * (double)N * (double)N) / (t_omp * 1e9);
-            printf("  Average: %.6f s  Speedup: %.2fx  GFLOPS: %.2f\n\n",
-                   t_omp, t_seq / t_omp, gflops);
+            printf("  Average: %.6f s (SD: %.6f s)  Speedup: %.2fx  GFLOPS: %.2f\n\n",
+                   t_omp, sd_omp, t_seq / t_omp, gflops);
         }
         double gflops = (2.0 * (double)N * (double)N * (double)N) / (t_omp * 1e9);
-        printf("omp,%d,%.6f,%d,%.6f,0.0,0.0,0.0\n", N, t_omp, valid, gflops);
+        printf("omp,%d,%.6f,%.6f,%d,%.6f,0.0,0.0,0.0,0.0\n", N, t_omp, sd_omp, valid, gflops);
     }
 
     if (mode & MODE_OPENCL) {
         const char *kernel_path = "src/opencl/gemm_kernel.cl";
 
-        double h2d = 0.0, kernel = 0.0, d2h = 0.0;
+        double h2d = 0.0, kernel = 0.0, d2h = 0.0, sd_ocl = 0.0;
         double t_ocl = benchmark_opencl(A, B, C_work, N, kernel_path,
-                                        csv_only, &h2d, &kernel, &d2h);
+                                        csv_only, &sd_ocl, &h2d, &kernel, &d2h);
         if (t_ocl < 0) {
-            printf("opencl,%d,-1,0,0.0,0.0,0.0,0.0\n", N);
+            printf("opencl,%d,-1,0.0,0,0.0,0.0,0.0,0.0,0.0\n", N);
         } else {
             int valid = validate_result(C_work, C_seq, N, !csv_only);
             double gflops = (2.0 * (double)N * (double)N * (double)N) / (t_ocl * 1e9);
             if (!csv_only) {
-                printf("  Average: %.6f s  Speedup: %.2fx  GFLOPS: %.2f\n\n",
-                       t_ocl, t_seq / t_ocl, gflops);
+                printf("  Average: %.6f s (SD: %.6f s)  Speedup: %.2fx  GFLOPS: %.2f\n\n",
+                       t_ocl, sd_ocl, t_seq / t_ocl, gflops);
             }
             double gflops_kernel = (2.0 * (double)N * (double)N * (double)N) / (kernel * 1e9);
-            printf("opencl,%d,%.6f,%d,%.6f,%.6f,%.6f,%.6f,%.6f\n", N, t_ocl, valid, gflops, h2d, kernel, d2h, gflops_kernel);
+            printf("opencl,%d,%.6f,%.6f,%d,%.6f,%.6f,%.6f,%.6f,%.6f\n", N, t_ocl, sd_ocl, valid, gflops, h2d, kernel, d2h, gflops_kernel);
         }
     }
 

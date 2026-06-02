@@ -79,24 +79,26 @@ graph TD
     D --> E[Paralel CPU: OpenMP]
     E --> F[Warmup Run: 1x OMP Run]
     F --> G[Measurement: 3x Rata-rata OMP Run]
-    G --> H[Hitung Rata-rata Execution Time OMP]
+    G --> H[Hitung Rata-rata Execution Time OMP & Standar Deviasi]
     H --> I[Hitung Selisih Absolut Epsilon vs Baseline]
     
     D --> J[Akselerasi GPU: OpenCL]
     J --> K[Warmup Run: JIT Compilation Kernel GPU]
-    K --> L[Transfer Memori Host-to-Device H2D via PCIe]
-    L --> M[Running Tiled Kernel GPU & Sinkronisasi]
-    M --> N[Transfer Memori Device-to-Host D2H via PCIe]
-    N --> O[Measurement: 3x Rata-rata GPU Run]
-    O --> I
+    K --> L[Measurement: 3x Loop GPU Run]
+    L --> M[API Initialization: Platform, Context, Command Queue, Buffer Allocation]
+    M --> N[Transfer Memori Host-to-Device H2D via PCIe]
+    N --> O[Running Tiled Kernel GPU & Sinkronisasi]
+    O --> P[Transfer Memori Device-to-Host D2H via PCIe]
+    P --> Q[Hitung Rata-rata Execution Time GPU & Standar Deviasi]
+    Q --> I
     
-    I --> P{Apakah E_avg < Epsilon?}
-    P -- Ya --> Q[Status: VALID]
-    P -- Tidak --> R[Status: INVALID]
+    I --> R{Apakah E_avg < Epsilon?}
+    R -- Ya --> S[Status: VALID]
+    R -- Tidak --> T[Status: INVALID]
     
-    Q --> S[Ekspor Output ke CSV results/ dan test/]
-    R --> S
-    S --> T[Selesai & Visualisasi Grafik Performa]
+    S --> U[Ekspor Output ke CSV results/ dan test/]
+    T --> U
+    U --> V[Selesai & Visualisasi Grafik Performa]
 ```
 
 ---
@@ -111,9 +113,9 @@ $$\text{GFLOPS} = \frac{\text{FLOPs}}{\text{Waktu (detik)} \times 10^9} = \frac{
 
 | Execution Mode | Metrik Performa | N = 256 | N = 512 | N = 1024 | N = 2048 |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **Sequential (CPU Baseline)** | Waktu (s)<br>Speedup<br>GFLOPS | 0.0076 s<br>1.00x<br>4.43 | 0.0662 s<br>1.00x<br>4.06 | 2.4365 s<br>1.00x<br>0.88 | 22.7890 s<br>1.00x<br>0.75 |
-| **OpenMP (6 Threads CPU)** | Waktu (s)<br>Speedup<br>GFLOPS | 0.0028 s<br>2.72x<br>12.04 | 0.0121 s<br>5.48x<br>22.24 | 0.3925 s<br>6.21x<br>5.47 | 3.1716 s<br>7.19x<br>5.42 |
-| **OpenCL (GPU Tiled)** | Waktu (s)<br>Speedup<br>GFLOPS (Wall-clock) | 0.0989 s<br>0.08x<br>0.34 | 0.0971 s<br>0.68x ⚠️<br>2.77 | 0.1082 s<br>22.52x<br>19.85 | 0.1628 s<br>140.01x<br>105.55 |
+| **Sequential (CPU Baseline)** | Waktu (s) ± SD<br>Speedup<br>GFLOPS | 0.0089 ±0.0010 s<br>1.00x<br>3.79 | 0.0654 ±0.0009 s<br>1.00x<br>4.10 | 2.4411 ±0.0066 s<br>1.00x<br>0.88 | 21.3689 ±0.0060 s<br>1.00x<br>0.80 |
+| **OpenMP (6 Threads CPU)** | Waktu (s) ± SD<br>Speedup<br>GFLOPS | 0.0025 ±0.0005 s<br>3.56x<br>13.22 | 0.0115 ±0.0001 s<br>5.69x<br>23.33 | 0.3959 ±0.0021 s<br>6.17x<br>5.42 | 3.1148 ±0.0276 s<br>6.86x<br>5.52 |
+| **OpenCL (GPU Tiled)** | Waktu (s) ± SD<br>Speedup<br>GFLOPS (Wall-clock) | 0.0905 ±0.0049 s<br>0.10x<br>0.37 | 0.0902 ±0.0084 s<br>0.73x ⚠️<br>2.97 | 0.1084 ±0.0067 s<br>22.52x<br>19.82 | 0.1470 ±0.0092 s<br>145.37x<br>116.85 |
 
 > 📐 **Definisi GFLOPS:** Kolom GFLOPS di atas dihitung berdasarkan **wall-clock time** (total waktu eksekusi). Jika ditinjau dari $T_{kernel}$ saja, performa GPU aktual di N=2048 mencapai **~297 GFLOPS**.
 ---
@@ -183,7 +185,7 @@ Analisis performa sistem heterogen ini tidak sekadar konseptual, tetapi divalida
 
 Terdapat celah signifikan pada rancangan benchmark yang merusak kesempurnaan kredibilitas ilmiah proyek ini:
 1. **Bug Metodologi Pengukuran Overhead:** Inisialisasi API OpenCL tetap dilakukan berulang pada setiap ukuran pengukuran yang berdampak masif (delay statis ~0.1 detik). Waktu komputasi murni ($T_{kernel}$) sejatinya sangat pesat, tetapi data wall-clock kami menutupi fakta tersebut.
-2. **Ketiadaan Data Varians dan Transisi:** Hanya rata-rata pengukuran yang disajikan (tanpa *Standard Deviation*) dan distribusi data logaritmik (256, 512, 1024, 2048) membuat *crossover point* hanya spekulatif. Dibutuhkan titik tambahan seperti N=768.
+2. **Ketiadaan Data Transisi:** Hanya distribusi data logaritmik (256, 512, 1024, 2048) yang disajikan, membuat *crossover point* hanya spekulatif. Dibutuhkan titik tambahan seperti N=768 untuk melihat titik impas secara deterministik.
 3. **Ketiadaan Pembanding BLAS CPU Teroptimasi:** Kesimpulan "GPU lebih kencang" bersifat parsial karena kami membandingkannya dengan *naive* OpenMP, tanpa membandingkannya dengan utilitas BLAS tingkat 3 CPU terspesialisasi penuh (seperti OpenBLAS/Intel MKL yang menggunakan instruksi AVX-512).
 4. **Thermal Throttling Tidak Dilaporkan:** Tidak ada telemetri suhu CPU dan GPU yang dilampirkan, padahal beban *sequential* panjang berpotensi besar memicu *thermal throttling* sistem pendingin laptop.
 5. **Ketiadaan API Proprietary (CUDA):** GPU testing didasarkan pada OpenCL 3.0, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA atau CUBLAS.
