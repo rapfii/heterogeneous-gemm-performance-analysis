@@ -39,10 +39,10 @@ Benchmark dijalankan pada sistem dengan spesifikasi sebagai berikut:
 * **Memory & Interconnect:**
   * System RAM: 16 GB DDR5 Dual-Channel @ 4800 MHz
   * Interface: PCIe Gen 4 x8 Lane (CPU ↔ GPU Communication)
-* **OS:** Arch Linux x86_64 (Linux Kernel 6.x Mainline)
-* **Compiler:** GCC 14.1.1 (C11 Standard)
-* **CPU Parallel API:** OpenMP 4.5
-* **GPU Acceleration API:** OpenCL 1.2 (NVIDIA OpenCL ICD Platform)
+* **OS:** Arch Linux x86_64 (Linux Kernel 7.0.9-arch1-1)
+* **Compiler:** GCC 16.1.1 (C11 Standard)
+* **CPU Parallel API:** OpenMP 5.2
+* **GPU Acceleration API:** OpenCL 3.0 (NVIDIA OpenCL ICD Platform)
 
 ---
 
@@ -178,7 +178,7 @@ Analisis performa sistem heterogen ini **konsisten secara konseptual dengan prin
 
 Meskipun sistem benchmark ini memberikan analisis performa yang komprehensif, terdapat beberapa batasan teknis yang dapat dikembangkan lebih lanjut:
 1. **Dynamic Block Scheduling (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi 16 × 16. Pengembangan lanjutan dapat menerapkan pencarian dinamis untuk mengetes *work-group size* terbaik secara *runtime*.
-2. **Ketiadaan API Proprietary (CUDA):** GPU testing didasarkan pada OpenCL 1.2, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA atau CUBLAS.
+2. **Ketiadaan API Proprietary (CUDA):** GPU testing didasarkan pada OpenCL 3.0, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA atau CUBLAS.
 3. **Optimasi Vektor CPU (Explicit SIMD):** Paralelisasi CPU mengandalkan *auto-vectorization* compiler dan pragma OpenMP, belum menggunakan *SIMD intrinsics* secara eksplisit (seperti AVX2/AVX-512).
 
 ---

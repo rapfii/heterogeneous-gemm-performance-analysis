@@ -15,9 +15,9 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Language-C11-00599C?style=flat-square&logo=c" alt="Language C">
   <img src="https://img.shields.io/badge/Parallel-OpenMP-4479A1?style=flat-square&logo=openacc" alt="OpenMP">
-  <img src="https://img.shields.io/badge/GPU-OpenCL_1.2-E1523D?style=flat-square&logo=khronosgroup" alt="OpenCL">
+  <img src="https://img.shields.io/badge/GPU-OpenCL_3.0-E1523D?style=flat-square&logo=khronosgroup" alt="OpenCL">
   <img src="https://img.shields.io/badge/OS-Arch_Linux-1793D1?style=flat-square&logo=arch-linux" alt="Arch Linux">
-  <img src="https://img.shields.io/badge/Compiler-GCC_14-FFD133?style=flat-square" alt="GCC Compiler">
+  <img src="https://img.shields.io/badge/Compiler-GCC_16-FFD133?style=flat-square" alt="GCC Compiler">
   <img src="https://img.shields.io/badge/Visualizer-Python_Matplotlib-3776AB?style=flat-square&logo=python" alt="Python Matplotlib">
   <br>
 </p>
@@ -88,10 +88,10 @@ Untuk menjamin tingkat akurasi dan replikasi actual test results, seluruh test d
 * **Memory & Interconnect:**
   * RAM Sistem: 16 GB DDR5 Dual-Channel @ 4800 MHz
   * Interconnect: PCIe Gen 4 x8 Lane (CPU ↔ GPU Communication)
-* **Operating System:** Arch Linux x86_64 (Kernel Linux 6.x Mainline)
-* **Toolchain & Compiler:** GCC 14.1.1 (C11 Standard)
-* **API Akselerasi CPU:** OpenMP 4.5 (Multi-threaded Parallelism)
-* **API Akselerasi GPU:** OpenCL 1.2 (NVIDIA OpenCL ICD Platform)
+* **Operating System:** Arch Linux x86_64 (Kernel Linux 7.0.9-arch1-1)
+* **Toolchain & Compiler:** GCC 16.1.1 (C11 Standard)
+* **API Akselerasi CPU:** OpenMP 5.2 (Multi-threaded Parallelism)
+* **API Akselerasi GPU:** OpenCL 3.0 (NVIDIA OpenCL ICD Platform)
 
 </details>
 
@@ -294,7 +294,7 @@ heterogeneous-gemm/
 
 Meskipun sistem benchmark ini memberikan analisis performa heterogen yang komprehensif, terdapat beberapa keterbatasan teknis yang dapat dikembangkan lebih lanjut:
 1. **Penjadwalan Blok Dinamis (Block Size Auto-Tuning):** Ukuran *tiling* OpenCL saat ini dikunci secara statis pada dimensi 16 × 16. Implementasi tingkat lanjut dapat memanfaatkan mekanisme pencarian adaptif untuk mengetes Work-Group Size terbaik berdasarkan karakteristik hardware runtime.
-2. **Ketiadaan API Proprietary (CUDA):** GPU testing hanya didasarkan pada library open-source cross-platform OpenCL 1.2, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA Core atau CUBLAS teroptimasi.
+2. **Ketiadaan API Proprietary (CUDA):** GPU testing hanya didasarkan pada library open-source cross-platform OpenCL 3.0, belum dibandingkan secara langsung dengan platform native NVIDIA CUDA Core atau CUBLAS teroptimasi.
 3. **Optimasi Vektor CPU (Explicit SIMD):** Bagian paralelisasi CPU saat ini sepenuhnya mengandalkan optimasi compiler otomatis dan pragma OpenMP, tanpa pemanfaatan instruksi intrinsik instruksi vektor hardware secara eksplisit (seperti AVX2/AVX-512).
 
 ---

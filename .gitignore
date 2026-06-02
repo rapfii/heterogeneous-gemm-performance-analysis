@@ -1,0 +1,6 @@
+# Compiled binaries and object files
+gemm_runner
+*.o
+
+# Intermediate benchmark results (since they are copied to test/ for submission)
+results/
