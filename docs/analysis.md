@@ -169,7 +169,7 @@ Analisis performa sistem heterogen ini **konsisten secara konseptual dengan prin
 
 1. **Crossover Point Performa:** Keunggulan akselerasi GPU (OpenCL) baru tercapai ketika ukuran matriks ($N$) cukup besar untuk menutupi *overhead* transfer PCIe. Pada matriks kecil, paralel CPU (OpenMP) adalah pilihan terbaik karena *overhead* transfer memori bernilai nol.
 2. **Kesesuaian Validasi:** Selisih hasil komputasi rata-rata ($E_{avg} < 10^{-4}$) dan nilai selisih maksimum ($E_{max}$) yang terkendali mengonfirmasi keakuratan komputasi heterogen di seluruh implementasi paralel, menunjukkan *robust validation* pada arsitektur GPU dengan instruksi FMA.
-3. **Penyebab Celah Efisiensi GPU:** Efisiensi aktual GPU pada $N=2048$ masih sebesar ~1.17% dari daya komputasi teoritis (105.55 GFLOPS vs 9,000 GFLOPS teoritis). Celah ini disebabkan oleh batasan bandwidth fisik memori saat menyalin data matriks serta tidak digunakannya instruksi optimasi level-rendah khusus vendor (seperti register tiling atau Tensor Cores).
+3. **Penyebab Celah Efisiensi GPU:** Efisiensi aktual GPU pada $N=2048$ masih sebesar ~1.17% dari daya komputasi teoritis (105.55 GFLOPS vs 9,000 GFLOPS teoritis). Celah ini disebabkan oleh batasan bandwidth fisik memori saat menyalin data matriks, tidak digunakannya instruksi optimasi level-rendah khusus vendor (seperti register tiling atau Tensor Cores), serta penguncian manual frekuensi clock GPU pada 2055 MHz (di bawah batas boost dinamis maksimumnya 3105 MHz) demi menjaga stabilitas dan reproduksibilitas pengujian.
 
 ---
 

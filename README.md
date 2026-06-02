@@ -143,6 +143,7 @@ Berikut adalah data actual test results yang tercatat pada sistem kami (diambil 
 Meskipun pengoptimalan *Matrix Tiling* berukuran 16 × 16 pada memori lokal berhasil meningkatkan efisiensi secara signifikan dibandingkan akses memori global langsung (karena memanfaatkan cache L1/L2 GPU secara optimal), performa aktual masih jauh di bawah batas teoritis kartu grafis. Hal ini disebabkan oleh:
 1. **Memory Bandwidth Bottleneck:** Pengisian data matriks secara berkala dari VRAM ke local memory dibatasi oleh kecepatan bandwidth fisik memori.
 2. **Sub-optimal Tiling & Hardware Alignment:** Kernel OpenCL generik tidak memiliki optimasi mikro khusus seperti *register tiling* (menyimpan data langsung di register *thread*), pemanfaatan *Tensor Cores* (melalui instruksi khusus hardware), atau optimasi assembly tingkat rendah seperti yang disediakan oleh library vendor tertutup (proprietary) seperti **NVIDIA CUDA** or **cuBLAS**.
+3. **Locked Clock Rate Limit (Penguncian Clock GPU):** Selama sesi benchmark, frekuensi clock GPU dikunci secara manual pada 2055 MHz (dibandingkan batas boost dinamis maksimumnya hingga 3105 MHz) untuk menjamin stabilitas data uji dan mencegah throttling suhu. Hal ini membatasi kapasitas throughput komputasi teoritis puncak kartu grafis selama pengujian.
 
 ---
 
