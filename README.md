@@ -131,6 +131,12 @@ Berikut adalah data actual test results yang tercatat pada sistem kami (diambil 
 
 > ⚠️ **Catatan Reproduksibilitas (Reproducibility Note):**  
 > Hasil benchmark di atas dapat bervariasi bergantung pada arsitektur mikro CPU/GPU, batas daya (TDP) sistem pendingin laptop, *core temperature*, serta kondisi bandwidth bus PCIe yang digunakan selama testing.
+> 
+> 📝 **Metodologi Kalibrasi Retest (Stable vs Dynamic Clocks):**  
+> Pada pengujian terbaru, terdapat perbedaan hasil dibanding pengujian dinamis sebelumnya (misal speedup GPU di N=2048 bergeser dari ~157x ke **140.01x**, dan throughput murni GPU bergeser dari ~113 GFLOPS ke **105.55 GFLOPS**). Hal ini disebabkan oleh penegakan protokol benchmark yang lebih ketat:
+> * **GPU Clock Locked (2055 MHz):** Frekuensi kerja GPU dikunci secara manual pada **2055 MHz** (sebelumnya dinamis hingga >2500 MHz via *GPU Boost*) untuk mencegah *frequency throttling* akibat peningkatan temperatur.
+> * **CPU Governor 'performance':** Governor CPU disetel ke mode performa tinggi secara konstan, mempercepat waktu eksekusi baseline sequential (dari **23.79 s** menjadi **22.78 s**).
+> * **Dampak Matematika:** Kombinasi baseline CPU yang lebih cepat dan clock GPU yang dikunci stabil menyebabkan rasio speedup ($\text{Speedup} = T_{\text{CPU Baseline}} / T_{\text{GPU}}$) secara matematis bergeser ke **140.01x**, namun menghasilkan konsistensi dan reliabilitas data uji yang jauh lebih tinggi.
 
 ---
 
