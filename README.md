@@ -28,8 +28,7 @@
 
 Berikut adalah video presentasi ilmiah dan demonstrasi running program benchmark komputasi heterogen (durasi 10–15 menit):
 
-* 📺 **Tautan YouTube:** [Tonton Video Presentasi Kelompok]([https://youtu.be/ID_VIDEO_ANDA](https://youtu.be/DGlnM8gVhfk)) 
-
+* 📺 **Tautan YouTube:** [Tonton Video Presentasi Kelompok](https://youtu.be/DGlnM8gVhfk)
 ---
 
 ## 👥 Kelompok Penyusun
