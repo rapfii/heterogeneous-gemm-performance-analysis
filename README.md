@@ -24,6 +24,28 @@
 
 ---
 
+## 🎥 Video Demonstrasi Proyek
+
+Berikut adalah video presentasi ilmiah dan demonstrasi running program benchmark komputasi heterogen (durasi 10–15 menit):
+
+* 📺 **Tautan YouTube:** [Tonton Video Presentasi Kelompok]([https://youtu.be/ID_VIDEO_ANDA](https://youtu.be/DGlnM8gVhfk)) 
+
+---
+
+## 👥 Kelompok Penyusun
+
+Proyek penelitian mandiri ini disusun oleh Kelompok UAS Mata Kuliah **Arsitektur dan Sistem Komputer** (Program Studi S1 Kecerdasan Artifisial, Kelas 2025B, FMIPA, Universitas Negeri Surabaya):
+
+* 👤 **Raffi Khairan Hidayat** (NIM: `25032014040`)
+* 👤 **Muhammad Panji Asmoro Bangun** (NIM: `25032014088`)
+* 👤 **Ridho Aryo Ramadhan** (NIM: `25032014069`)
+
+**Dosen Pengampu:**  
+* Dr. Widi Aribowo, S.T., M.T.  
+* Harmon Prayogi, M.Sc.
+
+---
+
 ## 📌 Deskripsi Proyek
 
 > 💡 **Secara Sederhana:** Proyek ini bertujuan untuk menjawab satu pertanyaan komputasi mendasar: **Pada ukuran matriks berapakah akselerasi GPU benar-benar mulai mengungguli CPU dalam operasi perkalian matriks?**
@@ -314,28 +336,6 @@ Meskipun sistem benchmark ini memberikan analisis performa heterogen yang kompre
 5. **Optimasi Vektor CPU (Explicit SIMD):** Bagian paralelisasi CPU saat ini sepenuhnya mengandalkan optimasi compiler otomatis dan pragma OpenMP, tanpa pemanfaatan instruksi vektor hardware secara eksplisit (seperti AVX2/AVX-512).
 6. **Thermal Throttling Tidak Dimonitor:** Suhu CPU/GPU selama benchmark tidak dilaporkan. Benchmark sequential N=2048 memakan ~22.8 detik, cukup untuk menyebabkan thermal throttling pada laptop GPU (TGP 96W). Stabilitas clock rate GPU selama keseluruhan sesi tidak diverifikasi secara independen.
 7. **Pembatasan Frekuensi Kerja GPU (Locked Clock Rate Limit):** GPU dikunci secara manual pada frekuensi 2055 MHz demi stabilitas dan konsistensi data uji. Hal ini membatasi GPU untuk beroperasi pada frekuensi boost dinamis teoritis maksimumnya (hingga 3105 MHz), sehingga persentase efisiensi riil terhadap kapasitas komputasi puncak teoritis tampak rendah (~1.00%).
-
----
-
-## 🎥 Video Demonstrasi Proyek
-
-Berikut adalah video presentasi ilmiah dan demonstrasi running program benchmark komputasi heterogen (durasi 10–15 menit):
-
-* 📺 **Tautan YouTube:** [Tonton Video Presentasi Kelompok](https://youtu.be/ID_VIDEO_ANDA) *(Tautan ini akan diperbarui setelah sesi perekaman demonstrasi).*
-
----
-
-## 👥 Kelompok Penyusun
-
-Proyek penelitian mandiri ini disusun oleh Kelompok UAS Mata Kuliah **Arsitektur dan Sistem Komputer** (Program Studi S1 Kecerdasan Artifisial, Kelas 2025B, FMIPA, Universitas Negeri Surabaya):
-
-* 👤 **Raffi Khairan Hidayat** (NIM: `25032014040`)
-* 👤 **Muhammad Panji Asmoro Bangun** (NIM: `25032014088`)
-* 👤 **Ridho Aryo Ramadhan** (NIM: `25032014069`)
-
-**Dosen Pengampu:**  
-* Dr. Widi Aribowo, S.T., M.T.  
-* Harmon Prayogi, M.Sc.
 
 ---
 
